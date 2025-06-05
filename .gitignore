@@ -1,0 +1,62 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of the go build command
+/build/
+bin/
+dist/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories (if using vendoring)
+/vendor/
+
+# Logs
+*.log
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Environment and configuration files
+.env
+.env.local
+.env.*.local
+
+# Go coverage files
+*.coverprofile
+*.testresult
+
+# Static files (optional: if generated)
+static/dist/
+static/assets/
+
+# Database
+*.sqlite
+*.db
+*.db-journal
+*.sql
+
+# Ignore migrations if generated and not tracked
+migrations/*.lock
+migrations/generated/
+
+# Ignore compiled protobufs (optional)
+*.pb.go
+
+# Temporary files
+tmp/
+*.tmp
