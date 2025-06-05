@@ -4,6 +4,7 @@ import (
 	"master-management-api/cmd/config"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
+	"master-management-api/internal/routes"
 )
 
 func init() {
@@ -12,5 +13,6 @@ func init() {
 }
 
 func main() {
+	routes.SetupRouter()
 	db.DB.AutoMigrate(&models.User{})
 }

@@ -1,8 +1,9 @@
 package routes
 
 import (
-	"log"
-	"master-management-api/internal/handlers"
+	"fmt"
+	"master-management-api/internal/auth"
+	"master-management-api/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,7 +11,10 @@ import (
 func SetupRouter() {
 	router := gin.Default()
 
-	router.GET("/tasks", handlers.GetTasks)
+	router.POST("/signup", auth.SignUp)
+	router.POST("/login", auth.Login)
+	router.GET("/validate", middleware.RequireAuth, auth.Validate)
 
-	log.Fatal(router.Run(":8080"))
+	fmt.Println("Listening to port 8080")
+	router.Run(":8080")
 }
