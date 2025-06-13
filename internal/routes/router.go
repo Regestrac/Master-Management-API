@@ -2,7 +2,7 @@ package routes
 
 import (
 	"fmt"
-	"master-management-api/internal/auth"
+	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +10,8 @@ import (
 
 func SetupRouter() {
 	router := gin.Default()
+
+	router.Use(middleware.CORSMiddleware())
 
 	router.POST("/signup", auth.SignUp)
 	router.POST("/login", auth.Login)
