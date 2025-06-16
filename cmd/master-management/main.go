@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"master-management-api/cmd/config"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
@@ -13,6 +14,11 @@ func init() {
 }
 
 func main() {
+	log.Println("Starting Migration...")
+	if err := db.DB.AutoMigrate(&models.User{}, &models.Task{}); err != nil {
+		log.Fatal("Failed to migrate:", err)
+	}
+	log.Println("Migration complete.")
+
 	routes.SetupRouter()
-	db.DB.AutoMigrate(&models.User{})
 }
