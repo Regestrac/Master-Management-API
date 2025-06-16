@@ -53,6 +53,25 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
+	// Generate a jwt token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to create token",
+		})
+		return
+	}
+
+	// send it back
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("Authorization", tokenString, 3600*24*30, "", "", false, true)
+
 	// Respond
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User created successfully",
@@ -120,5 +139,14 @@ func Validate(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": user,
+	})
+}
+
+func Logout(c *gin.Context) {
+	// Clear the Authorization cookie
+	c.SetCookie("Authorization", "", -1, "", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Logged out successfully",
 	})
 }

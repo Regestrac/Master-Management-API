@@ -18,6 +18,7 @@ func SetupRouter() {
 	router.POST("/signup", auth.SignUp)
 	router.POST("/login", auth.Login)
 	router.GET("/validate", middleware.RequireAuth, auth.Validate)
+	router.POST("/logout", middleware.RequireAuth, auth.Logout)
 
 	router.GET("/profile", middleware.RequireAuth, profile.GetProfile)
 
