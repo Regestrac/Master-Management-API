@@ -11,12 +11,11 @@ import (
 
 func GetTasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID          uint   `json:"id"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Status      string `json:"status"`
-		TimeSpend   string `json:"time_spend"`
-		Streak      uint   `json:"streak"`
+		ID        uint   `json:"id"`
+		Title     string `json:"title"`
+		Status    string `json:"status"`
+		TimeSpend uint   `json:"time_spend"`
+		Streak    uint   `json:"streak"`
 	}
 
 	userDataRaw, _ := c.Get("user")
@@ -32,12 +31,11 @@ func GetTasks(c *gin.Context) {
 	var data []TaskResponseType
 	for _, task := range tasks {
 		data = append(data, TaskResponseType{
-			ID:          task.ID,
-			Title:       task.Title,
-			Description: task.Description,
-			Status:      task.Status,
-			TimeSpend:   task.TimeSpend,
-			Streak:      task.Streak,
+			ID:        task.ID,
+			Title:     task.Title,
+			Status:    task.Status,
+			TimeSpend: task.TimeSpend,
+			Streak:    task.Streak,
 		})
 	}
 
@@ -46,9 +44,10 @@ func GetTasks(c *gin.Context) {
 
 func CreateTask(c *gin.Context) {
 	var body struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Status      string `json:"status"`
+		Title     string `json:"title"`
+		Status    string `json:"status"`
+		TimeSpend uint   `json:"time_spend"`
+		Streak    uint   `json:"streak"`
 	}
 
 	if c.Bind(&body) != nil {
@@ -62,10 +61,11 @@ func CreateTask(c *gin.Context) {
 	userId := userDataRaw.(models.User).ID
 
 	task := models.Task{
-		Title:       body.Title,
-		Description: body.Description,
-		Status:      body.Status,
-		UserId:      userId,
+		UserId:    userId,
+		Title:     body.Title,
+		Status:    body.Status,
+		TimeSpend: body.TimeSpend,
+		Streak:    body.Streak,
 	}
 
 	result := db.DB.Create(&task)

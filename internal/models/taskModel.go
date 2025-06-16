@@ -15,6 +15,6 @@ type Task struct {
 	Description string `json:"description"`
 	Status      string `json:"status"`
 	UserId      uint   `json:"user_id"`
-	TimeSpend   string `json:"time_spend"`
+	TimeSpend   uint   `json:"time_spend"`
 	Streak      uint   `json:"streak"`
 }
