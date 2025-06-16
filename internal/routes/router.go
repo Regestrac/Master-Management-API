@@ -21,6 +21,7 @@ func SetupRouter() {
 	router.POST("/logout", middleware.RequireAuth, auth.Logout)
 
 	router.GET("/profile", middleware.RequireAuth, profile.GetProfile)
+	router.PUT("/profile", middleware.RequireAuth, profile.UpdateProfile)
 
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
 	router.Run(os.Getenv("PORT"))
