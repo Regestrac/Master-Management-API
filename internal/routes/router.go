@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/handlers/profile"
+	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/middleware"
 	"os"
 
@@ -17,12 +18,18 @@ func SetupRouter() {
 
 	router.POST("/signup", auth.SignUp)
 	router.POST("/login", auth.Login)
-	router.GET("/validate", middleware.RequireAuth, auth.Validate)
-	router.POST("/logout", middleware.RequireAuth, auth.Logout)
 
-	router.GET("/profile", middleware.RequireAuth, profile.GetProfile)
-	router.PUT("/profile", middleware.RequireAuth, profile.UpdateProfile)
+	router.Use(middleware.RequireAuth)
 
-	fmt.Println("Listening to port" + os.Getenv("PORT"))
+	router.GET("/validate", auth.Validate)
+	router.POST("/logout", auth.Logout)
+
+	router.GET("/profile", profile.GetProfile)
+	router.PUT("/profile", profile.UpdateProfile)
+
+	router.POST("/task", task.CreateTask)
+	router.GET("/tasks", task.GetTasks)
+
 	router.Run(os.Getenv("PORT"))
+	fmt.Println("Listening to port" + os.Getenv("PORT"))
 }
