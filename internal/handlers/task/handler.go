@@ -126,3 +126,51 @@ func GetTask(c *gin.Context) {
 		},
 	})
 }
+
+func UpdateTask(c *gin.Context) {
+	id := c.Param("id")
+	userDataRaw, _ := c.Get("user")
+	userId := userDataRaw.(models.User).ID
+
+	var body struct {
+		Title       *string `json:"title"`
+		Status      *string `json:"status"`
+		TimeSpend   *uint   `json:"time_spend"`
+		Streak      *uint   `json:"streak"`
+		Description *string `json:"description"`
+	}
+
+	if err := c.Bind(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body"})
+		return
+	}
+
+	var task models.Task
+	if err := db.DB.Where("id = ? AND user_id = ?", id, userId).First(&task).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	if body.Title != nil {
+		task.Title = *body.Title
+	}
+	if body.Status != nil {
+		task.Status = *body.Status
+	}
+	if body.TimeSpend != nil {
+		task.TimeSpend = *body.TimeSpend
+	}
+	if body.Streak != nil {
+		task.Streak = *body.Streak
+	}
+	if body.Description != nil {
+		task.Description = *body.Description
+	}
+
+	if err := db.DB.Save(&task).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})
+}
