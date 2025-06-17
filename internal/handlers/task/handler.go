@@ -5,6 +5,7 @@ import (
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -123,6 +124,7 @@ func GetTask(c *gin.Context) {
 			"time_spend":  task.TimeSpend,
 			"streak":      task.Streak,
 			"description": task.Description,
+			"started_at":  task.StartedAt,
 		},
 	})
 }
@@ -138,6 +140,7 @@ func UpdateTask(c *gin.Context) {
 		TimeSpend   *uint   `json:"time_spend"`
 		Streak      *uint   `json:"streak"`
 		Description *string `json:"description"`
+		StartedAt   *string `json:"started_at"` // Accept time as string or empty
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -151,6 +154,7 @@ func UpdateTask(c *gin.Context) {
 		return
 	}
 
+	// Update fields
 	if body.Title != nil {
 		task.Title = *body.Title
 	}
@@ -165,6 +169,20 @@ func UpdateTask(c *gin.Context) {
 	}
 	if body.Description != nil {
 		task.Description = *body.Description
+	}
+
+	// Handle StartedAt
+	if body.StartedAt != nil {
+		if *body.StartedAt == "" {
+			task.StartedAt = nil
+		} else {
+			parsedTime, err := time.Parse(time.RFC3339, *body.StartedAt)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid started_at format. Use ISO 8601"})
+				return
+			}
+			task.StartedAt = &parsedTime
+		}
 	}
 
 	if err := db.DB.Save(&task).Error; err != nil {

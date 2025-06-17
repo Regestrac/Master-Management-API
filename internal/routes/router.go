@@ -31,7 +31,7 @@ func SetupRouter() {
 	router.GET("/tasks", task.GetAllTasks)
 	router.DELETE("/tasks/:id", task.DeleteTask)
 	router.GET("/tasks/:id", task.GetTask)
-	router.PUT("/tasks/:id", task.UpdateTask)
+	router.PATCH("/tasks/:id", task.UpdateTask)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
