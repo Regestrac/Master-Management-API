@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetTasks(c *gin.Context) {
+func GetAllTasks(c *gin.Context) {
 	type TaskResponseType struct {
 		ID        uint   `json:"id"`
 		Title     string `json:"title"`
@@ -81,5 +81,48 @@ func CreateTask(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Task Created successfully.",
+		"data":    gin.H{"id": task.ID},
+	})
+}
+
+func DeleteTask(c *gin.Context) {
+	id := c.Param("id")
+	userDataRaw, _ := c.Get("user")
+	userId := userDataRaw.(models.User).ID
+
+	var task models.Task
+	if err := db.DB.Where("id = ? AND user_id = ?", id, userId).First(&task).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	if err := db.DB.Delete(&task).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
+}
+
+func GetTask(c *gin.Context) {
+	id := c.Param("id")
+	userDataRaw, _ := c.Get("user")
+	userId := userDataRaw.(models.User).ID
+
+	var task models.Task
+	if err := db.DB.Where("id = ? AND user_id = ?", id, userId).First(&task).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"id":          task.ID,
+			"title":       task.Title,
+			"status":      task.Status,
+			"time_spend":  task.TimeSpend,
+			"streak":      task.Streak,
+			"description": task.Description,
+		},
 	})
 }
