@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"master-management-api/internal/handlers/auth"
+	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/handlers/profile"
 	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/middleware"
@@ -32,6 +33,9 @@ func SetupRouter() {
 	router.DELETE("/tasks/:id", task.DeleteTask)
 	router.GET("/tasks/:id", task.GetTask)
 	router.PATCH("/tasks/:id", task.UpdateTask)
+
+	router.GET("/tasks/:id/history", history.GetTaskHistory)
+	router.POST("/tasks/:id/history", history.AddToHistory)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))

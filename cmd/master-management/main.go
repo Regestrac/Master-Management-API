@@ -15,7 +15,7 @@ func init() {
 
 func main() {
 	log.Println("Starting Migration...")
-	if err := db.DB.AutoMigrate(&models.User{}, &models.Task{}); err != nil {
+	if err := db.DB.AutoMigrate(&models.User{}, &models.Task{}, &models.TaskHistory{}); err != nil {
 		log.Fatal("Failed to migrate:", err)
 	}
 	log.Println("Migration complete.")
