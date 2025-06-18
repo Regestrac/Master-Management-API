@@ -1,10 +1,11 @@
 package task
 
 import (
-	"fmt"
 	"master-management-api/internal/db"
+	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -78,7 +79,7 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("result", result)
+	history.LogHistory("created", "", body.Title, task.ID, userId)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Task Created successfully.",
@@ -156,18 +157,22 @@ func UpdateTask(c *gin.Context) {
 
 	// Update fields
 	if body.Title != nil {
+		history.LogHistory("title_update", task.Title, *body.Title, task.ID, userId)
 		task.Title = *body.Title
 	}
 	if body.Status != nil {
+		history.LogHistory("status_update", task.Status, *body.Status, task.ID, userId)
 		task.Status = *body.Status
 	}
 	if body.TimeSpend != nil {
+		history.LogHistory("stopped", strconv.FormatUint(uint64(task.TimeSpend), 10), strconv.FormatUint(uint64(*body.TimeSpend), 10), task.ID, userId)
 		task.TimeSpend = *body.TimeSpend
 	}
 	if body.Streak != nil {
 		task.Streak = *body.Streak
 	}
 	if body.Description != nil {
+		history.LogHistory("description_update", task.Description, *body.Description, task.ID, userId)
 		task.Description = *body.Description
 	}
 
@@ -181,6 +186,7 @@ func UpdateTask(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid started_at format. Use ISO 8601"})
 				return
 			}
+			history.LogHistory("started", "", "", task.ID, userId)
 			task.StartedAt = &parsedTime
 		}
 	}

@@ -1,6 +1,7 @@
 package history
 
 import (
+	"log"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"net/http"
@@ -57,4 +58,20 @@ func AddToHistory(c *gin.Context) {
 		"message": "Success",
 		"data":    history,
 	})
+}
+
+func LogHistory(action string, before string, after string, taskId uint, userId uint) {
+	history := models.TaskHistory{
+		Action: action,
+		Before: before,
+		After:  after,
+		TaskId: taskId,
+		UserId: userId,
+	}
+
+	if err := db.DB.Create(&history).Error; err != nil {
+		log.Printf("Failed to log history: %v", err)
+		return
+	}
+
 }
