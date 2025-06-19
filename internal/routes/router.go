@@ -37,6 +37,8 @@ func SetupRouter() {
 	router.GET("/tasks/:id/history", history.GetTaskHistory)
 	router.POST("/tasks/:id/history", history.AddToHistory)
 
+	router.POST("/task/:id/generate-description", task.GenerateDescription)
+
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
 }

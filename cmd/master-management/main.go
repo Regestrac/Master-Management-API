@@ -6,11 +6,16 @@ import (
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"master-management-api/internal/routes"
+	"master-management-api/pkg/ai"
 )
 
 func init() {
 	config.LoadEnv()
 	db.Connect()
+
+	if err := ai.Init(); err != nil {
+		log.Fatalf("Failed to initialize Gemini: %v", err)
+	}
 }
 
 func main() {
