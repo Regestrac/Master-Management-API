@@ -22,4 +22,5 @@ type Task struct {
 	TimeSpend   uint       `json:"time_spend"`
 	Streak      uint       `json:"streak"`
 	StartedAt   *time.Time `json:"started_at"` // pointer allows null
+	ParentId    *uint      `json:"parent_id"`  // for sub-tasks, nil if no parent
 }

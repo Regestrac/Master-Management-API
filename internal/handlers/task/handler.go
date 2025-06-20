@@ -50,6 +50,7 @@ func CreateTask(c *gin.Context) {
 		Status    string `json:"status"`
 		TimeSpend uint   `json:"time_spend"`
 		Streak    uint   `json:"streak"`
+		ParentId  *uint  `json:"parent_id"` // Optional parent ID for subtasks
 	}
 
 	if c.Bind(&body) != nil {
@@ -68,6 +69,7 @@ func CreateTask(c *gin.Context) {
 		Status:    body.Status,
 		TimeSpend: body.TimeSpend,
 		Streak:    body.Streak,
+		ParentId:  body.ParentId, // Set parent ID if provided
 	}
 
 	result := db.DB.Create(&task)
@@ -77,6 +79,10 @@ func CreateTask(c *gin.Context) {
 			"error": "Failed to create task",
 		})
 		return
+	}
+
+	if body.ParentId != nil {
+		history.LogHistory("subtask", "", body.Title, *body.ParentId, userId)
 	}
 
 	history.LogHistory("created", "", body.Title, task.ID, userId)
@@ -126,6 +132,7 @@ func GetTask(c *gin.Context) {
 			"streak":      task.Streak,
 			"description": task.Description,
 			"started_at":  task.StartedAt,
+			"parent_id":   task.ParentId,
 		},
 	})
 }

@@ -22,8 +22,6 @@ func GenerateDescription(c *gin.Context) {
 	prompt := fmt.Sprintf("Generate a helpful, concise description for the task: %s", body.Topic)
 
 	description, err := ai.Generate(prompt)
-	fmt.Println("description:", description)
-	fmt.Println("err:", err)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

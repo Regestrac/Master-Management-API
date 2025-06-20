@@ -29,18 +29,18 @@ func Init() error {
 func Generate(prompt string) (string, error) {
 	ctx := context.Background()
 
-	// config := &genai.GenerateContentConfig{
-	// ThinkingConfig: &genai.ThinkingConfig{
-	// 	ThinkingBudget: int32(0), // Disables thinking
-	// },
-	// SystemInstruction: genai.NewContentFromText("Answer in less than 500 characters.", genai.RoleUser),
-	// }
+	config := &genai.GenerateContentConfig{
+		// ThinkingConfig: &genai.ThinkingConfig{
+		// 	ThinkingBudget: int32(0), // Disables thinking
+		// },
+		// SystemInstruction: genai.NewContentFromText("Answer in less than 500 characters.", genai.RoleUser),
+	}
 
 	result, err := client.Models.GenerateContent(
 		ctx,
 		model,
 		genai.Text(prompt),
-		nil,
+		config,
 	)
 	if err != nil {
 		return "", err

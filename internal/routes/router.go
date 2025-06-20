@@ -5,6 +5,7 @@ import (
 	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/handlers/profile"
+	"master-management-api/internal/handlers/subtasks"
 	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/middleware"
 	"os"
@@ -36,8 +37,9 @@ func SetupRouter() {
 
 	router.GET("/tasks/:id/history", history.GetTaskHistory)
 	router.POST("/tasks/:id/history", history.AddToHistory)
-
 	router.POST("/task/:id/generate-description", task.GenerateDescription)
+
+	router.GET("/tasks/:id/subtasks", subtasks.GetAllSubtasks)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
