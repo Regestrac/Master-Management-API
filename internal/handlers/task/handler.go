@@ -25,7 +25,7 @@ func GetAllTasks(c *gin.Context) {
 
 	var tasks []models.Task
 
-	if err := db.DB.Where("user_id = ?", userId).Find(&tasks).Error; err != nil {
+	if err := db.DB.Where("user_id = ? AND parent_id IS NULL", userId).Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
 		return
 	}
