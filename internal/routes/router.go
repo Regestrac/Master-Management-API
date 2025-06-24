@@ -43,6 +43,8 @@ func SetupRouter() {
 	router.POST("/tasks/:id/generate-subtasks", subtasks.GenerateSubTasks)
 	router.POST("/tasks/:id/subtasks", subtasks.SaveSubtasks)
 
+	router.GET("/recent-tasks", task.GetRecentTasks)
+
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
 }

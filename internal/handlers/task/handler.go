@@ -123,6 +123,10 @@ func GetTask(c *gin.Context) {
 		return
 	}
 
+	currentTime := time.Now()
+	task.LastAccessedAt = &currentTime
+	db.DB.Save(&task) // Update last accessed time
+
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"id":          task.ID,
@@ -204,4 +208,36 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})
+}
+
+func GetRecentTasks(c *gin.Context) {
+	userDataRaw, _ := c.Get("user")
+	userId := userDataRaw.(models.User).ID
+
+	var tasks []models.Task
+	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND last_accessed_at IS NOT NULL", userId).Order("last_accessed_at DESC").Limit(5).Find(&tasks).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve recent tasks"})
+		return
+	}
+
+	type RecentTaskResponse struct {
+		ID             uint       `json:"id"`
+		Title          string     `json:"title"`
+		Status         string     `json:"status"`
+		TimeSpend      uint       `json:"time_spend"`
+		LastAccessedAt *time.Time `json:"last_accessed_at"`
+	}
+
+	var data []RecentTaskResponse
+	for _, task := range tasks {
+		data = append(data, RecentTaskResponse{
+			ID:             task.ID,
+			Title:          task.Title,
+			Status:         task.Status,
+			TimeSpend:      task.TimeSpend,
+			LastAccessedAt: task.LastAccessedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data})
 }
