@@ -199,6 +199,27 @@ func UpdateTask(c *gin.Context) {
 			}
 			history.LogHistory("started", "", "", task.ID, userId)
 			task.StartedAt = &parsedTime
+
+			currentTime := time.Now()
+			task.LastStartedAt = &currentTime
+
+			if task.LastStartedAt != nil {
+				yesterday := currentTime.AddDate(0, 0, -1).Truncate(24 * time.Hour)
+				lastCompleted := task.LastStartedAt.Truncate(24 * time.Hour)
+				if lastCompleted.Equal(yesterday) {
+					task.Streak += 1
+				} else if lastCompleted.Before(yesterday) {
+					task.Streak = 1 // reset
+				} else {
+					if task.Streak == 0 {
+						task.Streak = 1
+					}
+				}
+			} else {
+				task.Streak = 1
+			}
+
+			db.DB.Save(&task)
 		}
 	}
 
