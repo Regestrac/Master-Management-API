@@ -201,7 +201,6 @@ func UpdateTask(c *gin.Context) {
 			task.StartedAt = &parsedTime
 
 			currentTime := time.Now()
-			task.LastStartedAt = &currentTime
 
 			if task.LastStartedAt != nil {
 				yesterday := currentTime.AddDate(0, 0, -1).Truncate(24 * time.Hour)
@@ -219,6 +218,7 @@ func UpdateTask(c *gin.Context) {
 				task.Streak = 1
 			}
 
+			task.LastStartedAt = &currentTime
 			db.DB.Save(&task)
 		}
 	}
