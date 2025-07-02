@@ -25,4 +25,8 @@ type Task struct {
 	ParentId       *uint      `json:"parent_id"`  // for sub-tasks, nil if no parent
 	LastAccessedAt *time.Time `json:"last_accessed_at"`
 	LastStartedAt  *time.Time `json:"last_started_at"`
+	Priority       *string    `json:"priority"`
+	Type           string     `json:"type"`
+	DueDate        *time.Time `json:"due_date"`
+	Category       string     `json:"category"`
 }

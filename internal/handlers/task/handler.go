@@ -11,15 +11,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllTasks(c *gin.Context) {
-	type TaskResponseType struct {
-		ID        uint   `json:"id"`
-		Title     string `json:"title"`
-		Status    string `json:"status"`
-		TimeSpend uint   `json:"time_spend"`
-		Streak    uint   `json:"streak"`
-	}
+type TaskResponseType struct {
+	ID        uint       `json:"id"`
+	Title     string     `json:"title"`
+	Status    string     `json:"status"`
+	TimeSpend uint       `json:"time_spend"`
+	Streak    uint       `json:"streak"`
+	Type      string     `json:"type"`
+	Priority  *string    `json:"priority"`
+	DueDate   *time.Time `json:"due_date"`
+	Category  string     `json:"category"`
+}
 
+func GetAllTasks(c *gin.Context) {
 	userDataRaw, _ := c.Get("user")
 	userId := userDataRaw.(models.User).ID
 
@@ -38,6 +42,10 @@ func GetAllTasks(c *gin.Context) {
 			Status:    task.Status,
 			TimeSpend: task.TimeSpend,
 			Streak:    task.Streak,
+			Type:      task.Type,
+			Priority:  task.Priority,
+			DueDate:   task.DueDate,
+			Category:  task.Category,
 		})
 	}
 
@@ -51,6 +59,7 @@ func CreateTask(c *gin.Context) {
 		TimeSpend uint   `json:"time_spend"`
 		Streak    uint   `json:"streak"`
 		ParentId  *uint  `json:"parent_id"` // Optional parent ID for subtasks
+		Type      string `json:"type"`
 	}
 
 	if c.Bind(&body) != nil {
@@ -70,6 +79,7 @@ func CreateTask(c *gin.Context) {
 		TimeSpend: body.TimeSpend,
 		Streak:    body.Streak,
 		ParentId:  body.ParentId, // Set parent ID if provided
+		Type:      body.Type,
 	}
 
 	result := db.DB.Create(&task)
@@ -89,7 +99,17 @@ func CreateTask(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Task Created successfully.",
-		"data":    gin.H{"id": task.ID},
+		"data": TaskResponseType{
+			ID:        task.ID,
+			Title:     task.Title,
+			Status:    task.Status,
+			TimeSpend: task.TimeSpend,
+			Streak:    task.Streak,
+			Type:      task.Type,
+			Priority:  task.Priority,
+			DueDate:   task.DueDate,
+			Category:  task.Category,
+		},
 	})
 }
 
@@ -137,6 +157,7 @@ func GetTask(c *gin.Context) {
 			"description": task.Description,
 			"started_at":  task.StartedAt,
 			"parent_id":   task.ParentId,
+			"type":        task.Type,
 		},
 	})
 }
@@ -153,6 +174,7 @@ func UpdateTask(c *gin.Context) {
 		Streak      *uint   `json:"streak"`
 		Description *string `json:"description"`
 		StartedAt   *string `json:"started_at"` // Accept time as string or empty
+		Priority    *string `json:"priority"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -185,6 +207,10 @@ func UpdateTask(c *gin.Context) {
 	if body.Description != nil {
 		history.LogHistory("description_update", task.Description, *body.Description, task.ID, userId)
 		task.Description = *body.Description
+	}
+	if body.Priority != nil {
+		history.LogHistory("priority_change", *task.Priority, *body.Priority, task.ID, userId)
+		task.Priority = body.Priority
 	}
 
 	// Handle StartedAt
@@ -247,6 +273,9 @@ func GetRecentTasks(c *gin.Context) {
 		Status         string     `json:"status"`
 		TimeSpend      uint       `json:"time_spend"`
 		LastAccessedAt *time.Time `json:"last_accessed_at"`
+		Streak         uint       `json:"streak"`
+		Priority       *string    `json:"priority"`
+		Type           string     `json:"type"`
 	}
 
 	var data []RecentTaskResponse
@@ -257,6 +286,9 @@ func GetRecentTasks(c *gin.Context) {
 			Status:         task.Status,
 			TimeSpend:      task.TimeSpend,
 			LastAccessedAt: task.LastAccessedAt,
+			Streak:         task.Streak,
+			Priority:       task.Priority,
+			Type:           task.Type,
 		})
 	}
 
