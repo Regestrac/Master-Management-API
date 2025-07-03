@@ -141,7 +141,10 @@ func UpdateActiveTask(c *gin.Context) {
 		successMessage = "Successfully stopped the task"
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": successMessage})
+	c.JSON(http.StatusOK, gin.H{
+		"message":     successMessage,
+		"active_task": user.ActiveTask,
+	})
 }
 
 func UpdateTheme(c *gin.Context) {
@@ -170,5 +173,8 @@ func UpdateTheme(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Theme updated successfully."})
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Theme updated successfully.",
+		"theme":   user.Theme,
+	})
 }
