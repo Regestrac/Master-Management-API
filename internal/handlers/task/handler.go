@@ -1,6 +1,7 @@
 package task
 
 import (
+	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
@@ -23,6 +24,41 @@ type TaskResponseType struct {
 	Category  string     `json:"category"`
 }
 
+func UpdateStreak(task *models.Task, saveStartTime bool) uint {
+	currentTime := time.Now()
+
+	fmt.Println("saveStartTime", saveStartTime)
+	if task.LastStartedAt != nil {
+		fmt.Println("Hit != nil condition")
+		yesterday := currentTime.AddDate(0, 0, -1).Truncate(24 * time.Hour)
+		lastCompleted := task.LastStartedAt.Truncate(24 * time.Hour)
+		if lastCompleted.Equal(yesterday) {
+			if saveStartTime {
+				task.Streak += 1
+			}
+		} else if lastCompleted.Before(yesterday) {
+			task.Streak = 0
+			if saveStartTime {
+				task.Streak = 1
+			}
+		}
+	}
+	fmt.Println("Hit after != nil condition")
+
+	if saveStartTime {
+		if task.Streak < 1 {
+			task.Streak = 1
+		}
+		task.LastStartedAt = &currentTime
+	}
+
+	fmt.Println("final streak", task.Streak)
+
+	db.DB.Save(task)
+
+	return task.Streak
+}
+
 func GetAllTasks(c *gin.Context) {
 	userDataRaw, _ := c.Get("user")
 	userId := userDataRaw.(models.User).ID
@@ -36,12 +72,13 @@ func GetAllTasks(c *gin.Context) {
 
 	var data []TaskResponseType
 	for _, task := range tasks {
+		streak := UpdateStreak(&task, false)
 		data = append(data, TaskResponseType{
 			ID:        task.ID,
 			Title:     task.Title,
 			Status:    task.Status,
 			TimeSpend: task.TimeSpend,
-			Streak:    task.Streak,
+			Streak:    streak,
 			Type:      task.Type,
 			Priority:  task.Priority,
 			DueDate:   task.DueDate,
@@ -147,6 +184,8 @@ func GetTask(c *gin.Context) {
 	task.LastAccessedAt = &currentTime
 	db.DB.Save(&task) // Update last accessed time
 
+	UpdateStreak(&task, false)
+
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
 			"id":          task.ID,
@@ -209,7 +248,11 @@ func UpdateTask(c *gin.Context) {
 		task.Description = *body.Description
 	}
 	if body.Priority != nil {
-		history.LogHistory("priority_change", *task.Priority, *body.Priority, task.ID, userId)
+		if task.Priority != nil && *task.Priority != "" {
+			history.LogHistory("priority_change", *task.Priority, *body.Priority, task.ID, userId)
+		} else {
+			history.LogHistory("priority_change", "", *body.Priority, task.ID, userId)
+		}
 		task.Priority = body.Priority
 	}
 
@@ -226,26 +269,7 @@ func UpdateTask(c *gin.Context) {
 			history.LogHistory("started", "", "", task.ID, userId)
 			task.StartedAt = &parsedTime
 
-			currentTime := time.Now()
-
-			if task.LastStartedAt != nil {
-				yesterday := currentTime.AddDate(0, 0, -1).Truncate(24 * time.Hour)
-				lastCompleted := task.LastStartedAt.Truncate(24 * time.Hour)
-				if lastCompleted.Equal(yesterday) {
-					task.Streak += 1
-				} else if lastCompleted.Before(yesterday) {
-					task.Streak = 1 // reset
-				} else {
-					if task.Streak == 0 {
-						task.Streak = 1
-					}
-				}
-			} else {
-				task.Streak = 1
-			}
-
-			task.LastStartedAt = &currentTime
-			db.DB.Save(&task)
+			UpdateStreak(&task, true)
 		}
 	}
 
@@ -280,13 +304,14 @@ func GetRecentTasks(c *gin.Context) {
 
 	var data []RecentTaskResponse
 	for _, task := range tasks {
+		streak := UpdateStreak(&task, false)
 		data = append(data, RecentTaskResponse{
 			ID:             task.ID,
 			Title:          task.Title,
 			Status:         task.Status,
 			TimeSpend:      task.TimeSpend,
 			LastAccessedAt: task.LastAccessedAt,
-			Streak:         task.Streak,
+			Streak:         streak,
 			Priority:       task.Priority,
 			Type:           task.Type,
 		})
