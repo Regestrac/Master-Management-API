@@ -197,6 +197,8 @@ func GetTask(c *gin.Context) {
 			"started_at":  task.StartedAt,
 			"parent_id":   task.ParentId,
 			"type":        task.Type,
+			"priority":    task.Priority,
+			"created_at":  task.CreatedAt,
 		},
 	})
 }

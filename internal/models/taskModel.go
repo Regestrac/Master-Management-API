@@ -29,4 +29,6 @@ type Task struct {
 	Type           string     `json:"type"`
 	DueDate        *time.Time `json:"due_date"`
 	Category       string     `json:"category"`
+	Tags           *[]string  `json:"tags"`
+	Achievements   *[]string  `json:"achievements"`
 }
