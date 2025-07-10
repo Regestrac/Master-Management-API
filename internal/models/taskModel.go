@@ -29,6 +29,6 @@ type Task struct {
 	Type           string     `json:"type"`
 	DueDate        *time.Time `json:"due_date"`
 	Category       string     `json:"category"`
-	Tags           *[]string  `json:"tags"`
-	Achievements   *[]string  `json:"achievements"`
+	Tags           *[]string  `json:"tags" gorm:"serializer:json"`
+	Achievements   *[]string  `json:"achievements" gorm:"serializer:json"`
 }

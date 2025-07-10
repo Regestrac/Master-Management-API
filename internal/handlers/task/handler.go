@@ -180,6 +180,20 @@ func GetTask(c *gin.Context) {
 		return
 	}
 
+	// Fetch notes related to this task
+	var notes []models.Note
+	if err := db.DB.Where("task_id = ? AND user_id = ?", task.ID, userId).Find(&notes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve notes"})
+		return
+	}
+
+	// Fetch checklist related to this task
+	var checklists []models.Checklist
+	if err := db.DB.Where("task_id = ? AND user_id = ?", task.ID, userId).Find(&checklists).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve checklist"})
+		return
+	}
+
 	currentTime := time.Now()
 	task.LastAccessedAt = &currentTime
 	db.DB.Save(&task) // Update last accessed time
@@ -199,6 +213,8 @@ func GetTask(c *gin.Context) {
 			"type":        task.Type,
 			"priority":    task.Priority,
 			"created_at":  task.CreatedAt,
+			"notes":       notes,
+			"checklists":  checklists,
 		},
 	})
 }

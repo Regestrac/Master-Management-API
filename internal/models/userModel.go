@@ -14,5 +14,5 @@ type User struct {
 	TimeZone   *string `json:"time_zone"`
 	Language   string  `json:"language"`
 	Bio        string  `json:"bio"`
-	Favorites  []uint  `json:"favorites"`
+	Favorites  []uint  `json:"favorites" gorm:"serializer:json"`
 }

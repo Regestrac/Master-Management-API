@@ -2,7 +2,7 @@ package models
 
 import "gorm.io/gorm"
 
-type Notes struct {
+type Note struct {
 	gorm.Model
 	Text      string `json:"text"`
 	TextColor string `json:"text_color"`
