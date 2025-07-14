@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/handlers/history"
+	"master-management-api/internal/handlers/note"
 	"master-management-api/internal/handlers/profile"
 	"master-management-api/internal/handlers/subtasks"
 	"master-management-api/internal/handlers/task"
@@ -45,6 +46,10 @@ func SetupRouter() {
 	router.GET("/tasks/:id/subtasks", subtasks.GetAllSubtasks)
 	router.POST("/tasks/:id/generate-subtasks", subtasks.GenerateSubTasks)
 	router.POST("/tasks/:id/subtasks", subtasks.SaveSubtasks)
+
+	router.POST("/note", note.AddNote)
+	router.PATCH("/note/:noteId", note.UpdateNote)
+	router.DELETE("/note/:noteId", note.DeleteNote)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
