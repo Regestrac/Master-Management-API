@@ -1,7 +1,6 @@
 package note
 
 import (
-	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"net/http"
@@ -67,9 +66,6 @@ func UpdateNote(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("first note: ", note)
-	fmt.Println("body: ", body)
-
 	if body.Text != "" {
 		note.Text = body.Text
 	}
@@ -79,8 +75,6 @@ func UpdateNote(c *gin.Context) {
 	if body.BgColor != "" {
 		note.BgColor = body.BgColor
 	}
-
-	fmt.Println("note before save: ", note)
 
 	if db.DB.Save(&note).Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update note!"})

@@ -1,7 +1,6 @@
 package task
 
 import (
-	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
@@ -27,9 +26,7 @@ type TaskResponseType struct {
 func UpdateStreak(task *models.Task, saveStartTime bool) uint {
 	currentTime := time.Now()
 
-	fmt.Println("saveStartTime", saveStartTime)
 	if task.LastStartedAt != nil {
-		fmt.Println("Hit != nil condition")
 		yesterday := currentTime.AddDate(0, 0, -1).Truncate(24 * time.Hour)
 		lastCompleted := task.LastStartedAt.Truncate(24 * time.Hour)
 		if lastCompleted.Equal(yesterday) {
@@ -43,7 +40,6 @@ func UpdateStreak(task *models.Task, saveStartTime bool) uint {
 			}
 		}
 	}
-	fmt.Println("Hit after != nil condition")
 
 	if saveStartTime {
 		if task.Streak < 1 {
@@ -51,8 +47,6 @@ func UpdateStreak(task *models.Task, saveStartTime bool) uint {
 		}
 		task.LastStartedAt = &currentTime
 	}
-
-	fmt.Println("final streak", task.Streak)
 
 	db.DB.Save(task)
 
