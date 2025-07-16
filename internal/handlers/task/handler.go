@@ -1,11 +1,15 @@
 package task
 
 import (
+	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
+	"master-management-api/internal/utils"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -57,14 +61,69 @@ func GetAllTasks(c *gin.Context) {
 	userDataRaw, _ := c.Get("user")
 	userId := userDataRaw.(models.User).ID
 
+	// Get filters and sort
+	status := c.QueryArray("status")
+	priority := c.QueryArray("priority")
+	sortBy := c.DefaultQuery("sortBy", "created_at")
+	order := c.DefaultQuery("order", "asc")
+	searchKey := c.Query("searchKey")
+
 	var tasks []models.Task
 
-	if err := db.DB.Where("user_id = ? AND parent_id IS NULL", userId).Find(&tasks).Error; err != nil {
+	// Start query
+	query := db.DB.Where("user_id = ? AND parent_id IS NULL", userId)
+
+	// Apply filtering
+	if len(status) > 0 && !utils.Contains(status, "all") {
+		query = query.Where("status IN ?", status)
+	}
+	if len(priority) > 0 && !utils.Contains(priority, "all") {
+		query = query.Where("priority IN ?", priority)
+	}
+
+	if searchKey != "" {
+		likeQuery := "%" + searchKey + "%"
+		query = query.Where(
+			db.DB.Where("LOWER(title) LIKE LOWER(?)", likeQuery), // Add if want to include description in search -> .Or("LOWER(description) LIKE LOWER(?)", likeQuery)
+		)
+	}
+
+	// Sanitize sorting
+	validSorts := map[string]bool{
+		"priority":   true,
+		"status":     true,
+		"due_date":   true,
+		"created_at": true,
+	}
+	if !validSorts[sortBy] {
+		sortBy = "created_at"
+	}
+	if order != "asc" && order != "desc" {
+		order = "asc"
+	}
+
+	// Apply sorting
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+
+	// Run query
+	if err := query.Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
 		return
 	}
 
-	var data []TaskResponseType
+	if searchKey != "" {
+		searchKeyLower := strings.ToLower(searchKey)
+		sort.SliceStable(tasks, func(i, j int) bool {
+			a := strings.ToLower(tasks[i].Title)
+			b := strings.ToLower(tasks[j].Title)
+			aScore := utils.MatchScore(a, searchKeyLower, strings.ToLower(tasks[i].Description), false) // use true to include description in search
+			bScore := utils.MatchScore(b, searchKeyLower, strings.ToLower(tasks[j].Description), false)
+			return aScore > bScore // higher score first
+		})
+	}
+
+	// Map to response
+	data := make([]TaskResponseType, 0, len(tasks))
 	for _, task := range tasks {
 		streak := UpdateStreak(&task, false)
 		data = append(data, TaskResponseType{
