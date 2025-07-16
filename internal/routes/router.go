@@ -38,6 +38,7 @@ func SetupRouter() {
 	router.GET("/tasks/:id", task.GetTask)
 	router.PATCH("/tasks/:id", task.UpdateTask)
 	router.GET("/recent-tasks", task.GetRecentTasks)
+	router.GET("/tasks/stats", task.GetTaskStats)
 
 	router.GET("/tasks/:id/history", history.GetTaskHistory)
 	router.POST("/tasks/:id/history", history.AddToHistory)

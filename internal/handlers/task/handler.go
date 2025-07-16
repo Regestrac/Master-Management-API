@@ -390,3 +390,28 @@ func GetRecentTasks(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
+
+func GetTaskStats(c *gin.Context) {
+	userRawData, _ := c.Get("user")
+	userId := userRawData.(models.User).ID
+
+	type TaskStats struct {
+		Total      int64 `json:"total"`
+		ToDo       int64 `json:"todo"`
+		InProgress int64 `json:"in_progress"`
+		Pending    int64 `json:"pending"`
+		Paused     int64 `json:"paused"`
+		Completed  int64 `json:"completed"`
+	}
+
+	var stats TaskStats
+
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL", userId).Count(&stats.Total)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "todo").Count(&stats.ToDo)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "inprogress").Count(&stats.InProgress)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "pending").Count(&stats.Pending)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "paused").Count(&stats.Paused)
+	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "completed").Count(&stats.Completed)
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
+}
