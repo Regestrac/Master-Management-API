@@ -2,8 +2,11 @@ package profile
 
 import (
 	"master-management-api/internal/db"
+	"master-management-api/internal/handlers/history"
+	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/models"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -100,6 +103,19 @@ func UpdateProfile(c *gin.Context) {
 	})
 }
 
+func updateStartedAt(taskId uint, userId uint, c *gin.Context) {
+	// Updates the log and started
+	currentTime := time.Now()
+	var currTask models.Task
+	if err := db.DB.Where("id = ? AND user_id = ?", taskId, userId).First(&currTask).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found!"})
+		return
+	}
+	currTask.StartedAt = &currentTime
+	history.LogHistory("started", "", "", currTask.ID, userId)
+	task.UpdateStreak(&currTask, true)
+}
+
 func UpdateActiveTask(c *gin.Context) {
 	var body struct {
 		ActiveTask *uint `json:"active_task"`
@@ -118,8 +134,10 @@ func UpdateActiveTask(c *gin.Context) {
 	}
 
 	if body.ActiveTask != nil {
+		updateStartedAt(*body.ActiveTask, user.ID, c)
 		user.ActiveTask = body.ActiveTask
 	} else {
+		updateStartedAt(*user.ActiveTask, user.ID, c)
 		user.ActiveTask = nil
 	}
 
