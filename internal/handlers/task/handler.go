@@ -103,7 +103,34 @@ func GetAllTasks(c *gin.Context) {
 	}
 
 	// Apply sorting
-	query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	switch sortBy {
+	case "priority":
+		query = query.Order(
+			fmt.Sprintf(
+				`CASE
+					WHEN priority = 'high' THEN 1
+					WHEN priority = 'normal' THEN 2
+					WHEN priority = 'low' THEN 3
+					ELSE 4
+				END %s`, order,
+			),
+		)
+	case "status":
+		query = query.Order(
+			fmt.Sprintf(
+				`CASE
+					WHEN status = 'todo' THEN 1
+					WHEN status = 'inprogress' THEN 2
+					WHEN status = 'pending' THEN 3
+					WHEN status = 'paused' THEN 4
+					WHEN status = 'complete' THEN 5
+					ELSE 6
+				END %s`, order,
+			),
+		)
+	default:
+		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	}
 
 	// Run query
 	if err := query.Find(&tasks).Error; err != nil {
