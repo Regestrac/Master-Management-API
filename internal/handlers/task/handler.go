@@ -67,6 +67,7 @@ func GetAllTasks(c *gin.Context) {
 	sortBy := c.DefaultQuery("sortBy", "created_at")
 	order := c.DefaultQuery("order", "asc")
 	searchKey := c.Query("searchKey")
+	taskType := c.Query("type")
 
 	var tasks []models.Task
 
@@ -79,6 +80,9 @@ func GetAllTasks(c *gin.Context) {
 	}
 	if len(priority) > 0 && !utils.Contains(priority, "all") {
 		query = query.Where("priority IN ?", priority)
+	}
+	if taskType == "task" || taskType == "goal" {
+		query = query.Where("type = ?", taskType)
 	}
 
 	if searchKey != "" {
@@ -179,10 +183,18 @@ func CreateTask(c *gin.Context) {
 		Type      string `json:"type"`
 	}
 
-	if c.Bind(&body) != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to read body",
-		})
+	if body.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Title is required!"})
+		return
+	}
+
+	if body.Type != "task" && body.Type != "goal" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Type must be either 'task' or 'goal'!"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body!"})
 		return
 	}
 
