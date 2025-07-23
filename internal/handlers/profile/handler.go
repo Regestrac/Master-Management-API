@@ -6,6 +6,7 @@ import (
 	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/models"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -111,9 +112,20 @@ func updateStartedAt(taskId uint, userId uint, c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found!"})
 		return
 	}
-	currTask.StartedAt = &currentTime
-	history.LogHistory("started", "", "", currTask.ID, userId)
-	task.UpdateStreak(&currTask, true)
+	if currTask.StartedAt == nil {
+		currTask.StartedAt = &currentTime
+		history.LogHistory("started", "", "", currTask.ID, userId)
+		task.UpdateStreak(&currTask, true)
+	} else {
+		lastSessionTime := uint(currentTime.Sub(*currTask.StartedAt).Seconds())
+		totalTimeSpend := currTask.TimeSpend + lastSessionTime
+
+		history.LogHistory("stopped", strconv.FormatUint(uint64(currTask.TimeSpend), 10), strconv.FormatUint(uint64(totalTimeSpend), 10), currTask.ID, userId)
+
+		currTask.StartedAt = nil
+		currTask.TimeSpend = totalTimeSpend
+		task.UpdateStreak(&currTask, false)
+	}
 }
 
 func UpdateActiveTask(c *gin.Context) {
