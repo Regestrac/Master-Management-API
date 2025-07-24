@@ -446,18 +446,20 @@ func GetTaskStats(c *gin.Context) {
 
 	var taskStats TaskStats
 
-	err := db.DB.Model(&models.Task{}).Raw(`
+	commonQuery := "type = 'task' AND parent_id IS NULL AND deleted_at IS NULL"
+
+	err := db.DB.Model(&models.Task{}).Raw(fmt.Sprintf(`
 		SELECT
-			COUNT (*) FILTER (WHERE parent_id IS NULL) AS total,
-			COUNT (*) FILTER (WHERE status = 'completed' AND parent_id IS NULL) as completed,
-			COUNT (*) FILTER (WHERE status = 'todo' AND parent_id IS NULL) as todo,
-			COUNT (*) FILTER (WHERE status = 'inprogress' AND parent_id IS NULL) as in_progress,
-			COUNT (*) FILTER (WHERE status = 'pending' AND parent_id IS NULL) as pending,
-			COUNT (*) FILTER (WHERE status = 'paused' AND parent_id IS NULL) as paused,
-			COUNT (*) FILTER (WHERE due_date IS NOT NULL AND due_date < NOW() AND status != 'completed' AND parent_id IS NULL) AS overdue
+			COUNT (*) FILTER (WHERE %s) AS total,
+			COUNT (*) FILTER (WHERE status = 'completed' AND %s) as completed,
+			COUNT (*) FILTER (WHERE status = 'todo' AND %s) as todo,
+			COUNT (*) FILTER (WHERE status = 'inprogress' AND %s) as in_progress,
+			COUNT (*) FILTER (WHERE status = 'pending' AND %s) as pending,
+			COUNT (*) FILTER (WHERE status = 'paused' AND %s) as paused,
+			COUNT (*) FILTER (WHERE due_date IS NOT NULL AND due_date < NOW() AND status != 'completed' AND %s) AS overdue
 		FROM tasks
 		WHERE user_id = ?
-	`, userId).Scan(&taskStats).Error
+	`, commonQuery, commonQuery, commonQuery, commonQuery, commonQuery, commonQuery, commonQuery), userId).Scan(&taskStats).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task stats!"})
