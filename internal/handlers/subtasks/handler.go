@@ -1,7 +1,6 @@
 package subtasks
 
 import (
-	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
@@ -62,8 +61,6 @@ func SaveSubtasks(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body"})
 		return
 	}
-
-	fmt.Println("body:", body)
 
 	userDataRaw, _ := c.Get("user")
 	userId := userDataRaw.(models.User).ID

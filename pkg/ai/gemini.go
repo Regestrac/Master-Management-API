@@ -12,7 +12,7 @@ var (
 	model  string = "gemini-2.0-flash"
 )
 
-// Init initializes the Gemini client. Call this once in your main.go or similar.
+// Init initializes the Gemini client. Call this once in main.go.
 func Init() error {
 	var err error
 	ctx := context.Background()
