@@ -436,21 +436,43 @@ func GetTaskStats(c *gin.Context) {
 
 	type TaskStats struct {
 		Total      int64 `json:"total"`
-		ToDo       int64 `json:"todo"`
+		Completed  int64 `json:"completed"`
+		Todo       int64 `json:"todo"`
 		InProgress int64 `json:"in_progress"`
 		Pending    int64 `json:"pending"`
 		Paused     int64 `json:"paused"`
-		Completed  int64 `json:"completed"`
+		OverDue    int64 `json:"overdue"`
 	}
 
-	var stats TaskStats
+	var taskStats TaskStats
 
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL", userId).Count(&stats.Total)
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "todo").Count(&stats.ToDo)
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "inprogress").Count(&stats.InProgress)
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "pending").Count(&stats.Pending)
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "paused").Count(&stats.Paused)
-	db.DB.Model(&models.Task{}).Where("user_id = ? AND parent_id IS NULL AND status = ?", userId, "completed").Count(&stats.Completed)
+	err := db.DB.Model(&models.Task{}).Raw(`
+		SELECT
+			COUNT (*) FILTER (WHERE parent_id IS NULL) AS total,
+			COUNT (*) FILTER (WHERE status = 'completed' AND parent_id IS NULL) as completed,
+			COUNT (*) FILTER (WHERE status = 'todo' AND parent_id IS NULL) as todo,
+			COUNT (*) FILTER (WHERE status = 'inprogress' AND parent_id IS NULL) as in_progress,
+			COUNT (*) FILTER (WHERE status = 'pending' AND parent_id IS NULL) as pending,
+			COUNT (*) FILTER (WHERE status = 'paused' AND parent_id IS NULL) as paused,
+			COUNT (*) FILTER (WHERE due_date IS NOT NULL AND due_date < NOW() AND status != 'completed' AND parent_id IS NULL) AS overdue
+		FROM tasks
+		WHERE user_id = ?
+	`, userId).Scan(&taskStats).Error
 
-	c.JSON(http.StatusOK, gin.H{"data": stats})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task stats!"})
+		return
+	}
+
+	data := []map[string]interface{}{
+		{"status": "total", "count": taskStats.Total},
+		{"status": "completed", "count": taskStats.Completed},
+		{"status": "todo", "count": taskStats.Todo},
+		{"status": "in_progress", "count": taskStats.InProgress},
+		{"status": "pending", "count": taskStats.Pending},
+		{"status": "paused", "count": taskStats.Paused},
+		{"status": "overdue", "count": taskStats.OverDue},
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data})
 }
