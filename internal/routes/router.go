@@ -49,8 +49,9 @@ func SetupRouter() {
 	router.POST("/tasks/:id/subtasks", subtasks.SaveSubtasks)
 
 	router.POST("/note", note.AddNote)
-	router.PATCH("/note/:noteId", note.UpdateNote)
-	router.DELETE("/note/:noteId", note.DeleteNote)
+	router.PATCH("/notes/:noteId", note.UpdateNote)
+	router.DELETE("/notes/:noteId", note.DeleteNote)
+	router.GET("/notes", note.GetAllNotes)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
