@@ -183,6 +183,11 @@ func CreateTask(c *gin.Context) {
 		Type      string `json:"type"`
 	}
 
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body!"})
+		return
+	}
+
 	if body.Title == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Title is required!"})
 		return
@@ -190,11 +195,6 @@ func CreateTask(c *gin.Context) {
 
 	if body.Type != "task" && body.Type != "goal" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Type must be either 'task' or 'goal'!"})
-		return
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body!"})
 		return
 	}
 
@@ -254,10 +254,18 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	if err := db.DB.Delete(&task).Error; err != nil {
+		if task.ParentId != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete sub task"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
 		return
 	}
 
+	if task.ParentId != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "Sub Task deleted successfully"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
 }
 
