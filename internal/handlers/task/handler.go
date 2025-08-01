@@ -486,3 +486,53 @@ func GetTaskStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
+
+func GetGoalStats(c *gin.Context) {
+	userRawData, _ := c.Get("user")
+	userId := userRawData.(models.User).ID
+
+	type GoalStats struct {
+		Total           uint  `json:"total"`
+		Active          uint  `json:"active"`
+		Completed       uint  `json:"completed"`
+		Paused          uint  `json:"paused"`
+		HighPriority    uint  `json:"high_priority"`
+		AverageProgress *uint `json:"average_progress"`
+	}
+
+	var goalStats GoalStats
+
+	commonQuery := "type = 'goal' AND parent_id IS NULL AND deleted_at IS NULL"
+
+	err := db.DB.Model(&models.Task{}).Raw(fmt.Sprintf(`
+		SELECT
+			COUNT (*) FILTER (WHERE %s) AS total,
+			COUNT (*) FILTER (WHERE status = 'inprogress' AND %s) as active,
+			COUNT (*) FILTER (WHERE status = 'completed' AND %s) as completed,
+			COUNT (*) FILTER (WHERE status = 'paused' AND %s) as paused,
+			COUNT (*) FILTER (WHERE priority = 'high' AND %s) as high_priority
+		FROM tasks
+		WHERE user_id = ?
+	`, commonQuery, commonQuery, commonQuery, commonQuery, commonQuery), userId).Scan(&goalStats).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve goal stats!"})
+		return
+	}
+
+	var averageProgress uint = 0
+	if goalStats.Completed > 0 {
+		averageProgress = (goalStats.Total / goalStats.Completed) * 100
+	}
+
+	data := []map[string]interface{}{
+		{"status": "total", "count": goalStats.Total},
+		{"status": "active", "count": goalStats.Active},
+		{"status": "completed", "count": goalStats.Completed},
+		{"status": "paused", "count": goalStats.Paused},
+		{"status": "high_priority", "count": goalStats.HighPriority},
+		{"status": "average_progress", "count": averageProgress},
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
