@@ -520,9 +520,9 @@ func GetGoalStats(c *gin.Context) {
 		return
 	}
 
-	var averageProgress uint = 0
-	if goalStats.Completed > 0 {
-		averageProgress = (goalStats.Total / goalStats.Completed) * 100
+	var averageProgress float64 = 0
+	if goalStats.Total > 0 {
+		averageProgress = (float64(goalStats.Completed) / float64(goalStats.Total)) * 100
 	}
 
 	data := []map[string]interface{}{
