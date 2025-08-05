@@ -1,0 +1,130 @@
+package checklist
+
+import (
+	"master-management-api/internal/db"
+	"master-management-api/internal/models"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+func CreateChecklist(c *gin.Context) {
+	user, _ := c.Get("user")
+	userId := user.(models.User).ID
+
+	var body struct {
+		Title  string `json:"title"`
+		TaskId uint   `json:"task_id"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body"})
+		return
+	}
+
+	checklist := models.Checklist{
+		UserId:    userId,
+		Title:     body.Title,
+		TaskId:    body.TaskId,
+		Completed: false,
+	}
+
+	if db.DB.Create(&checklist).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create checklist!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Checklist created successfully.",
+		"data":    checklist,
+	})
+}
+
+func GetAllChecklists(c *gin.Context) {
+	user, _ := c.Get("user")
+	userId := user.(models.User).ID
+
+	taskId := c.Query("task_id")
+
+	var checklists []models.Checklist
+
+	if db.DB.Where("user_id = ? AND task_id = ?", userId, taskId).Find(&checklists).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve checklists!"})
+		return
+	}
+
+	response := make([]gin.H, 0, len(checklists))
+
+	for _, checklist := range checklists {
+		response = append(response, gin.H{
+			"id":           checklist.ID,
+			"created_at":   checklist.CreatedAt,
+			"title":        checklist.Title,
+			"task_id":      checklist.TaskId,
+			"user_id":      checklist.UserId,
+			"completed":    checklist.Completed,
+			"completed_at": checklist.CompletedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": response})
+}
+
+func UpdateChecklist(c *gin.Context) {
+	user, _ := c.Get("user")
+	userId := user.(models.User).ID
+
+	id := c.Param("id")
+
+	var body struct {
+		Title     string `json:"title"`
+		Completed *bool  `json:"completed"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body!"})
+		return
+	}
+
+	var checklist models.Checklist
+
+	if db.DB.Where("user_id = ? AND id = ?", userId, id).First(&checklist).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find checklist!"})
+		return
+	}
+
+	if body.Title != "" {
+		checklist.Title = body.Title
+	}
+	if body.Completed != nil {
+		checklist.Completed = *body.Completed
+	}
+
+	if db.DB.Save(&checklist).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save checklist!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully.", "data": checklist})
+}
+
+func DeleteChecklist(c *gin.Context) {
+	user, _ := c.Get("user")
+	userId := user.(models.User).ID
+
+	id := c.Param("id")
+
+	var checklist = models.Checklist{}
+
+	if db.DB.Where("user_id = ? AND id = ?", userId, id).Find(&checklist).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not find checklist!"})
+		return
+	}
+
+	if db.DB.Delete(&checklist).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete checklist!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully."})
+}

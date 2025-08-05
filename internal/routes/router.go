@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"master-management-api/internal/handlers/auth"
+	"master-management-api/internal/handlers/checklist"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/handlers/note"
 	"master-management-api/internal/handlers/profile"
@@ -51,9 +52,14 @@ func SetupRouter() {
 	router.GET("/goals/stats", task.GetGoalStats)
 
 	router.POST("/note", note.AddNote)
+	router.GET("/notes", note.GetAllNotes)
 	router.PATCH("/notes/:noteId", note.UpdateNote)
 	router.DELETE("/notes/:noteId", note.DeleteNote)
-	router.GET("/notes", note.GetAllNotes)
+
+	router.POST("/checklist", checklist.CreateChecklist)
+	router.GET("/checklists", checklist.GetAllChecklists)
+	router.PATCH("/checklists/:id", checklist.UpdateChecklist)
+	router.DELETE("/checklists/:id", checklist.DeleteChecklist)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
