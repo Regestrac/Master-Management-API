@@ -10,15 +10,21 @@ import (
 	"master-management-api/internal/handlers/subtasks"
 	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/middleware"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
+func handleNoRoute(c *gin.Context) {
+	c.JSON(http.StatusForbidden, gin.H{"error": "Invalid API route or endpoint"})
+}
+
 func SetupRouter() {
 	router := gin.Default()
 
 	router.Use(middleware.CORSMiddleware())
+	router.NoRoute(handleNoRoute)
 
 	router.POST("/signup", auth.SignUp)
 	router.POST("/login", auth.Login)
@@ -60,6 +66,8 @@ func SetupRouter() {
 	router.GET("/checklists", checklist.GetAllChecklists)
 	router.PATCH("/checklists/:id", checklist.UpdateChecklist)
 	router.DELETE("/checklists/:id", checklist.DeleteChecklist)
+	router.POST("/checklists/:id/generate-checklists", checklist.GenerateChecklist)
+	router.POST("/checklists", checklist.SaveChecklists)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))

@@ -128,3 +128,39 @@ func DeleteChecklist(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully."})
 }
+
+func SaveChecklists(c *gin.Context) {
+	user, _ := c.Get("user")
+	userId := user.(models.User).ID
+
+	var body []struct {
+		Title  string `json:"title"`
+		TaskId uint   `json:"task_id"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body"})
+		return
+	}
+
+	var checklists []models.Checklist
+
+	for _, checklist := range body {
+		checklists = append(checklists, models.Checklist{
+			Title:     checklist.Title,
+			Completed: false,
+			TaskId:    checklist.TaskId,
+			UserId:    userId,
+		})
+	}
+
+	if db.DB.Save(&checklists).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create checklist!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Checklists added successfully.",
+		"data":    checklists,
+	})
+}
