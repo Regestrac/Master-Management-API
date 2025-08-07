@@ -55,6 +55,8 @@ func SetupRouter() {
 	router.POST("/tasks/:id/generate-subtasks", subtasks.GenerateSubTasks)
 	router.POST("/tasks/:id/subtasks", subtasks.SaveSubtasks)
 
+	router.POST("/tasks/:id/generate-tags", task.GenerateTags)
+
 	router.GET("/goals/stats", task.GetGoalStats)
 
 	router.POST("/note", note.AddNote)

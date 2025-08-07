@@ -313,6 +313,7 @@ func GetTask(c *gin.Context) {
 			"type":        task.Type,
 			"priority":    task.Priority,
 			"created_at":  task.CreatedAt,
+			"tags":        task.Tags,
 			"notes":       notes,
 			"checklists":  checklists,
 		},
@@ -325,13 +326,14 @@ func UpdateTask(c *gin.Context) {
 	userId := userDataRaw.(models.User).ID
 
 	var body struct {
-		Title       *string `json:"title"`
-		Status      *string `json:"status"`
-		TimeSpend   *uint   `json:"time_spend"`
-		Streak      *uint   `json:"streak"`
-		Description *string `json:"description"`
-		StartedAt   *string `json:"started_at"` // Accept time as string or empty
-		Priority    *string `json:"priority"`
+		Title       *string   `json:"title"`
+		Status      *string   `json:"status"`
+		TimeSpend   *uint     `json:"time_spend"`
+		Streak      *uint     `json:"streak"`
+		Description *string   `json:"description"`
+		StartedAt   *string   `json:"started_at"` // Accept time as string or empty
+		Priority    *string   `json:"priority"`
+		Tags        *[]string `json:"tags"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -372,6 +374,9 @@ func UpdateTask(c *gin.Context) {
 			history.LogHistory("priority_change", "", *body.Priority, task.ID, userId)
 		}
 		task.Priority = body.Priority
+	}
+	if body.Tags != nil {
+		task.Tags = body.Tags
 	}
 
 	// Handle StartedAt
