@@ -541,3 +541,40 @@ func GetGoalStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
+
+func GetActiveGoals(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var goals []models.Task
+	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND status = 'inprogress'", userId).Find(&goals).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve active goals"})
+		return
+	}
+
+	type ActiveGoalsResponse struct {
+		ID             uint       `json:"id"`
+		Title          string     `json:"title"`
+		Status         string     `json:"status"`
+		TimeSpend      uint       `json:"time_spend"`
+		Type           string     `json:"type"`
+		Streak         uint       `json:"streak"`
+		LastAccessedAt *time.Time `json:"last_accessed_at"`
+	}
+
+	var data []ActiveGoalsResponse
+	for _, goal := range goals {
+		streak := UpdateStreak(&goal, false)
+		data = append(data, ActiveGoalsResponse{
+			ID:             goal.ID,
+			Streak:         streak,
+			Type:           goal.Type,
+			Title:          goal.Title,
+			Status:         goal.Status,
+			TimeSpend:      goal.TimeSpend,
+			LastAccessedAt: goal.LastAccessedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
