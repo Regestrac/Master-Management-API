@@ -1,6 +1,10 @@
 package utils
 
-import "strings"
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"strings"
+)
 
 func Contains[T comparable](slice []T, item T) bool {
 	for _, v := range slice {
@@ -25,4 +29,14 @@ func MatchScore(title, searchKey, desc string, useDesc bool) int {
 		return 50
 	}
 	return 0
+}
+
+func GenerateInviteCode(length int) string {
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err) // handle properly in production
+	}
+	code := base64.URLEncoding.EncodeToString(b)
+	return strings.ToUpper(code[:length])
 }

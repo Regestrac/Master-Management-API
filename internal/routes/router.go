@@ -9,6 +9,7 @@ import (
 	"master-management-api/internal/handlers/profile"
 	"master-management-api/internal/handlers/subtasks"
 	"master-management-api/internal/handlers/task"
+	"master-management-api/internal/handlers/workspace"
 	"master-management-api/internal/middleware"
 	"net/http"
 	"os"
@@ -71,6 +72,10 @@ func SetupRouter() {
 	router.DELETE("/checklists/:id", checklist.DeleteChecklist)
 	router.POST("/checklists/:id/generate-checklists", checklist.GenerateChecklist)
 	router.POST("/checklists", checklist.SaveChecklists)
+
+	router.POST("/workspace", workspace.CreateWorkspace)
+	router.POST("/workspace/join", workspace.JoinWorkspace)
+	router.GET("/workspaces", workspace.GetWorkspaces)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
