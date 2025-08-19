@@ -8,4 +8,5 @@ type Workspace struct {
 	Description string `json:"description"`
 	ManagerId   uint   `json:"manager_id"`
 	InviteCode  string `json:"invite_code"`
+	Type        string `json:"type"`
 }

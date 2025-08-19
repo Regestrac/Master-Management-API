@@ -27,9 +27,18 @@ func GetWorkspaces(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"workspaces": workspaces,
-	})
+	response := []gin.H{}
+	for _, workspace := range workspaces {
+		response = append(response, gin.H{
+			"id":         workspace.ID,
+			"name":       workspace.Name,
+			"manager_id": workspace.ManagerId,
+			"created_at": workspace.CreatedAt,
+			"type":       workspace.Type,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"workspaces": response})
 
 }
 
