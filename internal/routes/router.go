@@ -76,6 +76,8 @@ func SetupRouter() {
 	router.POST("/workspace", workspace.CreateWorkspace)
 	router.POST("/workspace/join", workspace.JoinWorkspace)
 	router.GET("/workspaces", workspace.GetWorkspaces)
+	router.GET("/workspaces/:workspaceId", workspace.GetWorkspaceById)
+	router.GET("/workspaces/:workspaceId/members", workspace.GetMembers)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))

@@ -19,7 +19,7 @@ func GetWorkspaces(c *gin.Context) {
 	// Join workspace_members and workspaces to find all workspaces for this user
 	if err := db.DB.
 		Table("workspaces").
-		Select("workspaces.id, workspaces.name, workspaces.manager_id, workspaces.created_at").
+		Select("workspaces.*").
 		Joins("JOIN members wm ON wm.workspace_id = workspaces.id").
 		Where("wm.user_id = ?", userId).
 		Scan(&workspaces).Error; err != nil {
@@ -40,6 +40,25 @@ func GetWorkspaces(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"workspaces": response})
 
+}
+
+func GetWorkspaceById(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	workspaceId := c.Param("workspaceId")
+
+	var workspace models.Workspace
+	if err := db.DB.Table("workspaces").
+		Select("workspaces.*").
+		Joins("JOIN members ON members.workspace_id = workspaces.id").
+		Where("members.user_id = ? AND workspaces.id = ?", userId, workspaceId).
+		First(&workspace).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve workspace details!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": workspace})
 }
 
 func CreateWorkspace(c *gin.Context) {
@@ -128,4 +147,32 @@ func JoinWorkspace(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Joined successfully."})
+}
+
+func GetMembers(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+	if userId == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized!"})
+		return
+	}
+
+	workspaceId := c.Param("workspaceId")
+
+	type MemberWithName struct {
+		models.Member
+		Name string `json:"name"`
+	}
+
+	var members []MemberWithName
+	if err := db.DB.Table("members").
+		Select("members.*, CONCAT(users.first_name, ' ', users.last_name) as name").
+		Joins("JOIN users ON users.id = members.user_id").
+		Where("members.workspace_id = ?", workspaceId).
+		Scan(&members).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve members list!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"members": members})
 }
