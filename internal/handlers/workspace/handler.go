@@ -21,7 +21,7 @@ func GetWorkspaces(c *gin.Context) {
 		Table("workspaces").
 		Select("workspaces.*").
 		Joins("JOIN members wm ON wm.workspace_id = workspaces.id").
-		Where("wm.user_id = ?", userId).
+		Where("wm.user_id = ? AND wm.deleted_at IS NULL", userId).
 		Scan(&workspaces).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch workspaces"})
 		return
@@ -52,7 +52,7 @@ func GetWorkspaceById(c *gin.Context) {
 	if err := db.DB.Table("workspaces").
 		Select("workspaces.*").
 		Joins("JOIN members ON members.workspace_id = workspaces.id").
-		Where("members.user_id = ? AND workspaces.id = ?", userId, workspaceId).
+		Where("members.user_id = ? AND workspaces.id = ? AND members.deleted_at IS NULL", userId, workspaceId).
 		First(&workspace).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve workspace details!"})
 		return
@@ -141,12 +141,52 @@ func JoinWorkspace(c *gin.Context) {
 		JoinedAt:    &currentTime,
 	}
 
-	if err := db.DB.Create(&member); err != nil {
+	if err := db.DB.Create(&member).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join workspace! Please try again later."})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Joined successfully."})
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Joined successfully.",
+		"workspace": gin.H{
+			"id":   workspace.ID,
+			"name": workspace.Name,
+		},
+	})
+}
+
+func LeaveWorkspace(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	workspaceId := c.Param("workspaceId")
+
+	// Check if workspace exists and user is a member
+	var member models.Member
+	if err := db.DB.Where("workspace_id = ? AND user_id = ?", workspaceId, userId).First(&member).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "You are not a member of this workspace"})
+		return
+	}
+
+	// Check if user is not the manager
+	var workspace models.Workspace
+	if err := db.DB.First(&workspace, workspaceId).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Workspace not found"})
+		return
+	}
+
+	if workspace.ManagerId == userId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Workspace manager cannot leave. Transfer ownership first"})
+		return
+	}
+
+	// Delete the member record
+	if err := db.DB.Delete(&member).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to leave workspace"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully left the workspace"})
 }
 
 func GetMembers(c *gin.Context) {
@@ -168,7 +208,7 @@ func GetMembers(c *gin.Context) {
 	if err := db.DB.Table("members").
 		Select("members.*, CONCAT(users.first_name, ' ', users.last_name) as name").
 		Joins("JOIN users ON users.id = members.user_id").
-		Where("members.workspace_id = ?", workspaceId).
+		Where("members.workspace_id = ? AND members.deleted_at IS NULL", workspaceId).
 		Scan(&members).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve members list!"})
 		return
