@@ -175,12 +175,13 @@ func GetAllTasks(c *gin.Context) {
 
 func CreateTask(c *gin.Context) {
 	var body struct {
-		Title     string `json:"title"`
-		Status    string `json:"status"`
-		TimeSpend uint   `json:"time_spend"`
-		Streak    uint   `json:"streak"`
-		ParentId  *uint  `json:"parent_id"` // Optional parent ID for subtasks
-		Type      string `json:"type"`
+		Title       string `json:"title"`
+		Status      string `json:"status"`
+		TimeSpend   uint   `json:"time_spend"`
+		Streak      uint   `json:"streak"`
+		ParentId    *uint  `json:"parent_id"` // Optional parent ID for subtasks
+		Type        string `json:"type"`
+		WorkspaceId *uint  `json:"workspace_id"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -202,13 +203,14 @@ func CreateTask(c *gin.Context) {
 	userId := userDataRaw.(models.User).ID
 
 	task := models.Task{
-		UserId:    userId,
-		Title:     body.Title,
-		Status:    body.Status,
-		TimeSpend: body.TimeSpend,
-		Streak:    body.Streak,
-		ParentId:  body.ParentId, // Set parent ID if provided
-		Type:      body.Type,
+		UserId:      userId,
+		Title:       body.Title,
+		Status:      body.Status,
+		TimeSpend:   body.TimeSpend,
+		Streak:      body.Streak,
+		ParentId:    body.ParentId, // Set parent ID if provided
+		Type:        body.Type,
+		WorkspaceId: body.WorkspaceId,
 	}
 
 	result := db.DB.Create(&task)
