@@ -216,3 +216,23 @@ func GetMembers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"members": members})
 }
+
+func GetWorkspaceTasks(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	workspaceId := c.Param("workspaceId")
+
+	if userId == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var tasks []models.Task
+	if err := db.DB.Where("workspace_id = ?", workspaceId).Find(&tasks).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tasks": tasks})
+}
