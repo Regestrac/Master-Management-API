@@ -256,3 +256,91 @@ func GetWorkspaceGoals(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"goals": tasks})
 }
+
+func UpdateMember(c *gin.Context) {
+	// userData, _ := c.Get("user")
+	// userId := userData.(models.User).ID
+
+	memberId := c.Param("memberId")
+
+	var body struct {
+		Role         *string `json:"role"`
+		ProfileColor *string `json:"profile_color"`
+		AvatarUrl    *string `json:"avatar_url"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body!"})
+		return
+	}
+
+	var member models.Member
+	if err := db.DB.Where("id = ?", memberId).First(&member).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve member details!"})
+		return
+	}
+
+	if body.Role != nil {
+		member.Role = *body.Role
+	}
+	if body.AvatarUrl != nil {
+		member.AvatarUrl = *body.AvatarUrl
+	}
+	if body.ProfileColor != nil {
+		member.ProfileColor = *body.ProfileColor
+	}
+
+	if err := db.DB.Save(&member).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully."})
+}
+
+func RemoveMember(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	workspaceId := c.Param("workspaceId")
+	memberToRemoveId := c.Param("memberId")
+
+	// Check if requester is manager/admin
+	var requesterMember models.Member
+	if err := db.DB.Where("workspace_id = ? AND user_id = ?", workspaceId, userId).First(&requesterMember).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "You are not a member of this workspace"})
+		return
+	}
+
+	if requesterMember.Role != "manager" && requesterMember.Role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only managers and admins can remove members"})
+		return
+	}
+
+	// Get member to remove
+	var memberToRemove models.Member
+	if err := db.DB.Where("workspace_id = ? AND id = ?", workspaceId, memberToRemoveId).First(&memberToRemove).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
+		return
+	}
+
+	// Check if removing a manager
+	if memberToRemove.Role == "manager" {
+		// Count remaining managers
+		var managerCount int64
+		db.DB.Model(&models.Member{}).Where("workspace_id = ? AND role = ? AND deleted_at IS NULL", workspaceId, "manager").Count(&managerCount)
+
+		if managerCount <= 1 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot remove the only manager. Assign another manager first"})
+			return
+		}
+	}
+
+	// Soft delete the member
+	if err := db.DB.Delete(&memberToRemove).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove member"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Member removed successfully"})
+}

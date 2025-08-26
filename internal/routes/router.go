@@ -74,13 +74,16 @@ func SetupRouter() {
 	router.POST("/checklists", checklist.SaveChecklists)
 
 	router.POST("/workspace", workspace.CreateWorkspace)
-	router.POST("/workspace/join", workspace.JoinWorkspace)
 	router.GET("/workspaces", workspace.GetWorkspaces)
 	router.GET("/workspaces/:workspaceId", workspace.GetWorkspaceById)
-	router.GET("/workspaces/:workspaceId/members", workspace.GetMembers)
-	router.POST("/workspaces/:workspaceId/leave", workspace.LeaveWorkspace)
 	router.GET("/workspaces/:workspaceId/tasks", workspace.GetWorkspaceTasks)
 	router.GET("/workspaces/:workspaceId/goals", workspace.GetWorkspaceGoals)
+	router.POST("/workspaces/:workspaceId/leave", workspace.LeaveWorkspace)
+
+	router.POST("/workspace/join", workspace.JoinWorkspace)
+	router.GET("/workspaces/:workspaceId/members", workspace.GetMembers)
+	router.DELETE("/workspaces/:workspaceId/members/:memberId", workspace.RemoveMember)
+	router.PATCH("/workspaces/:workspaceId/members/:memberId", workspace.UpdateMember)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
