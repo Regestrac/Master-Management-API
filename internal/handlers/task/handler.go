@@ -336,6 +336,7 @@ func UpdateTask(c *gin.Context) {
 		StartedAt   *string   `json:"started_at"` // Accept time as string or empty
 		Priority    *string   `json:"priority"`
 		Tags        *[]string `json:"tags"`
+		Assignees   *[]uint   `json:"assignees"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -379,6 +380,9 @@ func UpdateTask(c *gin.Context) {
 	}
 	if body.Tags != nil {
 		task.Tags = body.Tags
+	}
+	if body.Assignees != nil {
+		task.Assignees = body.Assignees
 	}
 
 	// Handle StartedAt
