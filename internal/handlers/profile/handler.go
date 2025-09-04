@@ -13,12 +13,13 @@ import (
 )
 
 type UserResponse struct {
-	ID         uint   `json:"id"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	Email      string `json:"email"`
-	Theme      string `json:"theme"`
-	ActiveTask *uint  `json:"active_task"`
+	ID         uint    `json:"id"`
+	FirstName  string  `json:"first_name"`
+	LastName   string  `json:"last_name"`
+	Email      string  `json:"email"`
+	Theme      string  `json:"theme"`
+	ActiveTask *uint   `json:"active_task"`
+	AvatarUrl  *string `json:"avatar_url"`
 }
 
 func GetProfile(c *gin.Context) {
@@ -42,6 +43,7 @@ func GetProfile(c *gin.Context) {
 		Email:      userData.Email,
 		Theme:      userData.Theme,
 		ActiveTask: userData.ActiveTask,
+		AvatarUrl:  userData.AvatarUrl,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
