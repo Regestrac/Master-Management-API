@@ -8,6 +8,7 @@ import (
 
 type Member struct {
 	gorm.Model
+	ID           uint       `json:"id" gorm:"primaryKey"`
 	WorkspaceId  uint       `json:"workspace_id"`
 	UserId       uint       `json:"user_id"`
 	Role         string     `json:"role"`

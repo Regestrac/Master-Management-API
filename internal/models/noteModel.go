@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type Note struct {
 	gorm.Model
-	ID          uint   `json:"id"`
+	ID          uint   `json:"id" gorm:"primaryKey"`
 	Content     string `json:"content"`
 	X           int    `json:"x"`
 	Y           int    `json:"y"`

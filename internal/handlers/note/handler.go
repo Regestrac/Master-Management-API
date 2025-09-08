@@ -69,7 +69,7 @@ func UpdateNote(c *gin.Context) {
 		TaskId      uint   `json:"task_id"`
 		UserId      uint   `json:"user_id"`
 		Variant     string `json:"variant"`
-		ID          uint   `json:"id"`
+		ID          uint   `json:"id" gorm:"primaryKey"`
 	}
 
 	noteId := c.Param("noteId")

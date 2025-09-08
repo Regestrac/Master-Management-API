@@ -16,7 +16,7 @@ import (
 )
 
 type TaskResponseType struct {
-	ID        uint       `json:"id"`
+	ID        uint       `json:"id" gorm:"primaryKey"`
 	Title     string     `json:"title"`
 	Status    string     `json:"status"`
 	TimeSpend uint       `json:"time_spend"`
@@ -421,7 +421,7 @@ func GetRecentTasks(c *gin.Context) {
 	}
 
 	type RecentTaskResponse struct {
-		ID             uint       `json:"id"`
+		ID             uint       `json:"id" gorm:"primaryKey"`
 		Title          string     `json:"title"`
 		Status         string     `json:"status"`
 		TimeSpend      uint       `json:"time_spend"`
@@ -559,7 +559,7 @@ func GetActiveGoals(c *gin.Context) {
 	}
 
 	type ActiveGoalsResponse struct {
-		ID             uint       `json:"id"`
+		ID             uint       `json:"id" gorm:"primaryKey"`
 		Title          string     `json:"title"`
 		Status         string     `json:"status"`
 		TimeSpend      uint       `json:"time_spend"`

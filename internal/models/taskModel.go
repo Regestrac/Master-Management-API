@@ -15,7 +15,7 @@ import (
 
 type Task struct {
 	gorm.Model
-	ID             uint       `json:"id"`
+	ID             uint       `json:"id" gorm:"primaryKey"`
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
 	Status         string     `json:"status"`

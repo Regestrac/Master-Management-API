@@ -12,7 +12,7 @@ import (
 
 func GetAllSubtasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID        uint   `json:"id"`
+		ID        uint   `json:"id" gorm:"primaryKey"`
 		Title     string `json:"title"`
 		Status    string `json:"status"`
 		TimeSpend uint   `json:"time_spend"`
