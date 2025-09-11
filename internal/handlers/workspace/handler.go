@@ -14,15 +14,20 @@ func GetWorkspaces(c *gin.Context) {
 	userData, _ := c.Get("user")
 	userId := userData.(models.User).ID
 
-	var workspaces []models.Workspace
+	searchKey := c.Query("searchKey")
 
-	// Join workspace_members and workspaces to find all workspaces for this user
-	if err := db.DB.
+	var workspaces []models.Workspace
+	query := db.DB.
 		Table("workspaces").
 		Select("workspaces.*").
 		Joins("JOIN members wm ON wm.workspace_id = workspaces.id").
-		Where("wm.user_id = ? AND wm.deleted_at IS NULL", userId).
-		Scan(&workspaces).Error; err != nil {
+		Where("wm.user_id = ? AND wm.deleted_at IS NULL", userId)
+
+	if searchKey != "" {
+		query = query.Where("LOWER(name) LIKE ?", "%"+searchKey+"%")
+	}
+
+	if err := query.Scan(&workspaces).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch workspaces"})
 		return
 	}
@@ -39,7 +44,6 @@ func GetWorkspaces(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"workspaces": response})
-
 }
 
 func GetWorkspaceById(c *gin.Context) {
@@ -222,6 +226,7 @@ func GetWorkspaceTasks(c *gin.Context) {
 	userId := userData.(models.User).ID
 
 	workspaceId := c.Param("workspaceId")
+	searchKey := c.Query("searchKey")
 
 	if userId == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -229,7 +234,13 @@ func GetWorkspaceTasks(c *gin.Context) {
 	}
 
 	var tasks []models.Task
-	if err := db.DB.Where("workspace_id = ? AND type = 'task'", workspaceId).Find(&tasks).Error; err != nil {
+	query := db.DB.Where("workspace_id = ? AND type = 'task'", workspaceId)
+
+	if searchKey != "" {
+		query = query.Where("LOWER(title) LIKE ?", "%"+searchKey+"%")
+	}
+
+	if err := query.Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks!"})
 		return
 	}
@@ -242,6 +253,7 @@ func GetWorkspaceGoals(c *gin.Context) {
 	userId := userData.(models.User).ID
 
 	workspaceId := c.Param("workspaceId")
+	searchKey := c.Query("searchKey")
 
 	if userId == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -249,7 +261,13 @@ func GetWorkspaceGoals(c *gin.Context) {
 	}
 
 	var tasks []models.Task
-	if err := db.DB.Where("workspace_id = ? AND type = 'goal'", workspaceId).Find(&tasks).Error; err != nil {
+	query := db.DB.Where("workspace_id = ? AND type = 'goal'", workspaceId)
+
+	if searchKey != "" {
+		query = query.Where("LOWER(title) LIKE ?", "%"+searchKey+"%")
+	}
+
+	if err := query.Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve goals!"})
 		return
 	}
