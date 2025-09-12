@@ -415,7 +415,7 @@ func GetRecentTasks(c *gin.Context) {
 	userId := userDataRaw.(models.User).ID
 
 	var tasks []models.Task
-	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND last_accessed_at IS NOT NULL AND workspace_id IS NULL", userId).Order("last_accessed_at DESC").Limit(5).Find(&tasks).Error; err != nil {
+	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND last_accessed_at IS NOT NULL AND workspace_id IS NULL AND type = 'task'", userId).Order("last_accessed_at DESC").Limit(5).Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve recent tasks"})
 		return
 	}
@@ -553,7 +553,7 @@ func GetActiveGoals(c *gin.Context) {
 	userId := userData.(models.User).ID
 
 	var goals []models.Task
-	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND status = 'inprogress' AND workspace_id IS NULL", userId).Find(&goals).Error; err != nil {
+	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND status = 'inprogress' AND workspace_id IS NULL AND type = 'goal'", userId).Find(&goals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve active goals"})
 		return
 	}
