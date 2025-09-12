@@ -39,6 +39,7 @@ func SetupRouter() {
 	router.PUT("/profile", profile.UpdateProfile)
 	router.PATCH("/update-active-task", profile.UpdateActiveTask)
 	router.PATCH("/update-theme", profile.UpdateTheme)
+	router.GET("/dashboard/quick-stats", profile.GetQuickStats)
 
 	router.POST("/task", task.CreateTask)
 	router.GET("/tasks", task.GetAllTasks)

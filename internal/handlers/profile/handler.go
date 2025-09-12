@@ -210,3 +210,32 @@ func UpdateTheme(c *gin.Context) {
 		"theme":   user.Theme,
 	})
 }
+
+func GetQuickStats(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var stats struct {
+		TotalTasks     int64 `json:"total_tasks"`
+		TotalTimeSpend int64 `json:"total_time_spend"`
+		CompletedToday int64 `json:"completed_today"`
+		CurrentStreak  int64 `json:"current_streak"`
+	}
+
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	tomorrow := today.Add(24 * time.Hour)
+	if err := db.DB.Model(&models.Task{}).
+		Select(`
+			COUNT(CASE WHEN type = 'task' AND parent_id IS NULL AND workspace_id IS NULL THEN 1 END) as total_tasks,
+			COALESCE(SUM(time_spend), 0) as total_time_spend,
+			COALESCE(MAX(streak), 0) as current_streak,
+			COUNT(CASE WHEN status = 'completed' AND updated_at >= ? AND updated_at < ? THEN 1 END) as completed_today
+		`, today, tomorrow).
+		Where("user_id = ?", userId).
+		Scan(&stats).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch stats"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
+}
