@@ -17,4 +17,5 @@ type User struct {
 	Bio        string  `json:"bio"`
 	Favorites  []uint  `json:"favorites" gorm:"serializer:json"`
 	AvatarUrl  *string `json:"avatar_url"`
+	Company    *string `json:"company"`
 }

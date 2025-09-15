@@ -7,6 +7,7 @@ import (
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/handlers/note"
 	"master-management-api/internal/handlers/profile"
+	"master-management-api/internal/handlers/settings"
 	"master-management-api/internal/handlers/subtasks"
 	"master-management-api/internal/handlers/task"
 	"master-management-api/internal/handlers/workspace"
@@ -85,6 +86,10 @@ func SetupRouter() {
 	router.GET("/workspaces/:workspaceId/members", workspace.GetMembers)
 	router.DELETE("/workspaces/:workspaceId/members/:memberId", workspace.RemoveMember)
 	router.PATCH("/workspaces/:workspaceId/members/:memberId", workspace.UpdateMember)
+
+	router.GET("/settings", settings.GetUserSettings)
+	router.PATCH("/settings", settings.UpdateUserSettings)
+	router.PUT("/settings/reset", settings.ResetSettings)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))

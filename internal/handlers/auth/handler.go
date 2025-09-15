@@ -2,6 +2,7 @@ package auth
 
 import (
 	"master-management-api/internal/db"
+	"master-management-api/internal/handlers/settings"
 	"master-management-api/internal/models"
 	"net/http"
 	"os"
@@ -50,6 +51,11 @@ func SignUp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Failed to create user",
 		})
+		return
+	}
+
+	if err := settings.CreateUserSettings(user.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user settings!"})
 		return
 	}
 
