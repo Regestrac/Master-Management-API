@@ -28,6 +28,7 @@ func main() {
 		&models.Checklist{},
 		&models.Workspace{},
 		&models.Member{},
+		&models.UserSettings{},
 	); err != nil {
 		log.Fatal("Failed to migrate:", err)
 	}
