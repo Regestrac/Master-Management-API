@@ -126,7 +126,7 @@ func JoinWorkspace(c *gin.Context) {
 
 	var workspace models.Workspace
 	if err := db.DB.Where("invite_code = ?", body.InviteCode).First(&workspace).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Invalid invite code"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invite code"})
 		return
 	}
 
