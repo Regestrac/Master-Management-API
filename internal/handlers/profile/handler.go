@@ -22,6 +22,43 @@ type UserResponse struct {
 	AvatarUrl  *string `json:"avatar_url"`
 }
 
+func StartTaskSession(userID uint, taskID uint) error {
+	var activeSession models.TaskSession
+	if err := db.DB.Where("end_time IS NULL").First(&activeSession).Error; err == nil {
+		now := time.Now()
+		activeSession.EndTime = &now
+		activeSession.Duration = int64(now.Sub(activeSession.StartTime).Seconds())
+		if err := db.DB.Save(&activeSession).Error; err != nil {
+			return err
+		}
+	}
+
+	session := models.TaskSession{
+		TaskID:    taskID,
+		UserID:    userID,
+		StartTime: time.Now(),
+	}
+	return db.DB.Create(&session).Error
+}
+
+func StopTaskSession() error {
+	var session models.TaskSession
+	if err := db.DB.Where("end_time IS NULL").First(&session).Error; err != nil {
+		return err
+	}
+
+	now := time.Now()
+	session.EndTime = &now
+	session.Duration = int64(now.Sub(session.StartTime).Seconds())
+
+	// update task.total_time_spend also
+	// db.DB.Model(&models.Task{}).
+	// 	Where("id = ?", session.TaskID).
+	// 	Update("time_spend", gorm.Expr("time_spend + ?", session.Duration))
+
+	return db.DB.Save(&session).Error
+}
+
 func GetProfile(c *gin.Context) {
 	userDataRaw, exists := c.Get("user")
 
@@ -150,9 +187,17 @@ func UpdateActiveTask(c *gin.Context) {
 	if body.ActiveTask != nil {
 		updateStartedAt(*body.ActiveTask, user.ID, c)
 		user.ActiveTask = body.ActiveTask
+		if err := StartTaskSession(user.ID, *body.ActiveTask); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log start session! " + err.Error()})
+			return
+		}
 	} else {
 		updateStartedAt(*user.ActiveTask, user.ID, c)
 		user.ActiveTask = nil
+		if err := StopTaskSession(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log stop session! " + err.Error()})
+			return
+		}
 	}
 
 	if err := db.DB.Save(user).Error; err != nil {
