@@ -34,4 +34,5 @@ type Task struct {
 	Achievements   *[]string  `json:"achievements" gorm:"serializer:json"`
 	WorkspaceId    *uint      `json:"workspace_id"`
 	Assignees      *[]uint    `json:"assignees" gorm:"serializer:json"`
+	CompletedAt    *time.Time `json:"completed_at"`
 }

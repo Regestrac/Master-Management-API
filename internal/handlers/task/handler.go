@@ -356,6 +356,10 @@ func UpdateTask(c *gin.Context) {
 		task.Title = *body.Title
 	}
 	if body.Status != nil {
+		if *body.Status == "completed" && task.Status != "completed" {
+			currentTime := time.Now()
+			task.CompletedAt = &currentTime
+		}
 		history.LogHistory("status_update", task.Status, *body.Status, task.ID, userId)
 		task.Status = *body.Status
 	}
