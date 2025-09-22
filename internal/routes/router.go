@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"master-management-api/internal/handlers/analytics"
 	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/handlers/checklist"
 	"master-management-api/internal/handlers/history"
@@ -90,6 +91,8 @@ func SetupRouter() {
 	router.GET("/settings", settings.GetUserSettings)
 	router.PATCH("/settings", settings.UpdateUserSettings)
 	router.PUT("/settings/reset", settings.ResetSettings)
+
+	router.GET("/analytics/quick-metrics", analytics.GetQuickMetrics)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
