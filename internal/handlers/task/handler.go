@@ -16,16 +16,17 @@ import (
 )
 
 type TaskResponseType struct {
-	ID        uint       `json:"id" gorm:"primaryKey"`
-	Title     string     `json:"title"`
-	Status    string     `json:"status"`
-	TimeSpend uint       `json:"time_spend"`
-	Streak    uint       `json:"streak"`
-	Type      string     `json:"type"`
-	Priority  *string    `json:"priority"`
-	DueDate   *time.Time `json:"due_date"`
-	Category  string     `json:"category"`
-	Progress  *float64   `json:"progress"`
+	ID             uint       `json:"id" gorm:"primaryKey"`
+	Title          string     `json:"title"`
+	Status         string     `json:"status"`
+	TimeSpend      uint       `json:"time_spend"`
+	Streak         uint       `json:"streak"`
+	Type           string     `json:"type"`
+	Priority       *string    `json:"priority"`
+	DueDate        *time.Time `json:"due_date"`
+	Category       string     `json:"category"`
+	Progress       *float64   `json:"progress"`
+	WeeklyProgress *int64     `json:"weekly_progress"`
 }
 
 func UpdateStreak(task *models.Task, saveStartTime bool) uint {
@@ -158,17 +159,31 @@ func GetAllTasks(c *gin.Context) {
 	data := make([]TaskResponseType, 0, len(tasks))
 	for _, task := range tasks {
 		streak := UpdateStreak(&task, false)
+		var weeklyProgress int64 = 0
+		if taskType == "goal" {
+			now, _ := time.Parse("02-01-2006", time.Now().AddDate(0, 0, 1).Format("02-01-2006"))
+			startDate, _ := time.Parse("02-01-2006", time.Now().AddDate(0, 0, -7).Format("02-01-2006"))
+
+			if err := db.DB.Model(&models.TaskSession{}).
+				Where("task_id = ? AND created_at BETWEEN ? AND ?", task.ID, startDate, now).
+				Select("COALESCE(SUM(duration), 0)").
+				Scan(&weeklyProgress).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get weekly progress"})
+				return
+			}
+		}
 		data = append(data, TaskResponseType{
-			ID:        task.ID,
-			Title:     task.Title,
-			Status:    task.Status,
-			TimeSpend: task.TimeSpend,
-			Streak:    streak,
-			Type:      task.Type,
-			Priority:  task.Priority,
-			DueDate:   task.DueDate,
-			Category:  task.Category,
-			Progress:  task.Progress,
+			ID:             task.ID,
+			Title:          task.Title,
+			Status:         task.Status,
+			TimeSpend:      task.TimeSpend,
+			Streak:         streak,
+			Type:           task.Type,
+			Priority:       task.Priority,
+			DueDate:        task.DueDate,
+			Category:       task.Category,
+			Progress:       task.Progress,
+			WeeklyProgress: &weeklyProgress,
 		})
 	}
 
