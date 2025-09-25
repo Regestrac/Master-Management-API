@@ -3,6 +3,8 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"master-management-api/internal/db"
+	"master-management-api/internal/models"
 	"strings"
 )
 
@@ -39,4 +41,44 @@ func GenerateInviteCode(length int) string {
 	}
 	code := base64.URLEncoding.EncodeToString(b)
 	return strings.ToUpper(code[:length])
+}
+
+func CalculateActivityProgress(goal models.Task) float64 {
+	return 0
+}
+
+func RecalculateGoalProgress(goalID uint) error {
+	var goal models.Task
+	if err := db.DB.First(&goal, "id = ? AND type = ?", goalID, "goal").Error; err != nil {
+		return err
+	}
+
+	// 1. Calculate checklist progress
+	var checklistTotal, checklistDone int64
+	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND deleted_at IS NULL", goalID).Count(&checklistTotal)
+	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND completed = true AND deleted_at IS NULL", goalID).Count(&checklistDone)
+
+	checklistProgress := 0.0
+	if checklistTotal > 0 {
+		checklistProgress = float64(checklistDone) / float64(checklistTotal) * 100
+	}
+
+	// 2. Calculate subtask progress
+	var subtaskTotal, subtaskDone int64
+	db.DB.Model(&models.Task{}).Where("parent_id = ? AND deleted_at IS NULL", goalID).Count(&subtaskTotal)
+	db.DB.Model(&models.Task{}).Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", goalID).Count(&subtaskDone)
+
+	subtaskProgress := 0.0
+	if subtaskTotal > 0 {
+		subtaskProgress = float64(subtaskDone) / float64(subtaskTotal) * 100
+	}
+
+	// 3. Calculate time/count progress (placeholder)
+	activityProgress := CalculateActivityProgress(goal)
+
+	// 4. Weightage (25% + 25% + 50%)
+	finalProgress := (checklistProgress*0.25 + subtaskProgress*0.25 + activityProgress*0.5)
+
+	// 5. Save to DB
+	return db.DB.Model(&goal).Update("progress", finalProgress).Error
 }

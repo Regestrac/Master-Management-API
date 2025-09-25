@@ -4,6 +4,7 @@ import (
 	"master-management-api/internal/db"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
+	"master-management-api/internal/utils"
 	"net/http"
 	"strconv"
 
@@ -85,6 +86,17 @@ func SaveSubtasks(c *gin.Context) {
 
 	for _, task := range subtasks {
 		history.LogHistory("created", "", task.Title, task.ID, userId)
+	}
+
+	if body[0].ParentId != nil {
+		var task models.Task
+		db.DB.Where("id = ?", body[0].ParentId).First(&task)
+		if task.Type == "goal" {
+			if err := utils.RecalculateGoalProgress(task.ID); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+				return
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": subtasks})

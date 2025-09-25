@@ -3,6 +3,7 @@ package checklist
 import (
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
+	"master-management-api/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,15 @@ func CreateChecklist(c *gin.Context) {
 	if db.DB.Create(&checklist).Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create checklist!"})
 		return
+	}
+
+	var task models.Task
+	db.DB.Where("id = ?", body.TaskId).First(&task)
+	if task.Type == "goal" {
+		if err := utils.RecalculateGoalProgress(body.TaskId); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -98,6 +108,15 @@ func UpdateChecklist(c *gin.Context) {
 	}
 	if body.Completed != nil {
 		checklist.Completed = *body.Completed
+
+		var task models.Task
+		db.DB.Where("id = ?", checklist.TaskId).First(&task)
+		if task.Type == "goal" {
+			if err := utils.RecalculateGoalProgress(task.ID); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+				return
+			}
+		}
 	}
 
 	if db.DB.Save(&checklist).Error != nil {
@@ -157,6 +176,15 @@ func SaveChecklists(c *gin.Context) {
 	if db.DB.Save(&checklists).Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create checklist!"})
 		return
+	}
+
+	var task models.Task
+	db.DB.Where("id = ?", body[0].TaskId).First(&task)
+	if task.Type == "goal" {
+		if err := utils.RecalculateGoalProgress(task.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

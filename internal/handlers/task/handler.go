@@ -6,7 +6,6 @@ import (
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/models"
 	"master-management-api/internal/utils"
-	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -155,85 +154,9 @@ func GetAllTasks(c *gin.Context) {
 		})
 	}
 
-	progress := make([]float64, len(tasks))
-
-	if taskType == "goal" {
-		goalIDs := make([]uint, len(tasks))
-
-		for index, goal := range tasks {
-			goalIDs[index] = goal.ID
-		}
-
-		type ChecklistStat struct {
-			TaskID uint  `json:"task_id"`
-			Total  int64 `json:"total"`
-			Done   int64 `json:"done"`
-		}
-
-		var checklistStats []ChecklistStat
-		db.DB.Raw(`
-			SELECT task_id,
-						COUNT(*) as total,
-						SUM(CASE WHEN completed THEN 1 ELSE 0 END) as done
-			FROM checklists
-			WHERE task_id IN ? AND deleted_at IS NULL
-			GROUP BY task_id
-		`, goalIDs).Scan(&checklistStats)
-
-		checklistMap := make(map[uint]ChecklistStat)
-		for _, cs := range checklistStats {
-			checklistMap[cs.TaskID] = cs
-		}
-
-		type SubtaskStat struct {
-			ParentID uint  `json:"parent_id"`
-			Total    int64 `json:"total"`
-			Done     int64 `json:"done"`
-		}
-
-		var subtaskStats []SubtaskStat
-		db.DB.Raw(`
-			SELECT parent_id,
-						COUNT(*) as total,
-						SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as done
-			FROM tasks
-			WHERE parent_id IN ? AND deleted_at IS NULL
-			GROUP BY parent_id
-		`, goalIDs).Scan(&subtaskStats)
-
-		subtaskMap := make(map[uint]SubtaskStat)
-		for _, st := range subtaskStats {
-			subtaskMap[st.ParentID] = st
-		}
-
-		// results := []TaskResponseType{}
-		for i, g := range tasks {
-			checklist := checklistMap[g.ID]
-			subtask := subtaskMap[g.ID]
-			// progress := progressMap[g.ID]
-
-			var checklistPct, subtaskPct /* , restPct */ float64
-
-			if checklist.Total > 0 {
-				checklistPct = 0.5 * (float64(checklist.Done) / float64(checklist.Total))
-			}
-			if subtask.Total > 0 {
-				subtaskPct = 0.5 * (float64(subtask.Done) / float64(subtask.Total))
-			}
-			// if progress.Target > 0 {
-			// 	restPct = float64(progress.Completed) / float64(progress.Target)
-			// }
-
-			overall := math.Round((checklistPct + subtaskPct) * 100) /*  + (0.5 * restPct) */
-
-			progress[i] = overall
-		}
-
-	}
-
 	// Map to response
 	data := make([]TaskResponseType, 0, len(tasks))
-	for index, task := range tasks {
+	for _, task := range tasks {
 		streak := UpdateStreak(&task, false)
 		data = append(data, TaskResponseType{
 			ID:        task.ID,
@@ -245,7 +168,7 @@ func GetAllTasks(c *gin.Context) {
 			Priority:  task.Priority,
 			DueDate:   task.DueDate,
 			Category:  task.Category,
-			Progress:  &progress[index],
+			Progress:  task.Progress,
 		})
 	}
 
@@ -302,6 +225,9 @@ func CreateTask(c *gin.Context) {
 	}
 
 	if body.ParentId != nil {
+		if task.Type == "goal" {
+			utils.RecalculateGoalProgress(task.ID)
+		}
 		history.LogHistory("subtask", "", body.Title, *body.ParentId, userId)
 	}
 
@@ -344,6 +270,9 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	if task.ParentId != nil {
+		if task.Type == "goal" {
+			utils.RecalculateGoalProgress(task.ID)
+		}
 		c.JSON(http.StatusOK, gin.H{"message": "Sub Task deleted successfully"})
 		return
 	}
@@ -397,6 +326,7 @@ func GetTask(c *gin.Context) {
 			"tags":        task.Tags,
 			"notes":       notes,
 			"checklists":  checklists,
+			"progress":    task.Progress,
 		},
 	})
 }
@@ -649,6 +579,7 @@ func GetActiveGoals(c *gin.Context) {
 		Type           string     `json:"type"`
 		Streak         uint       `json:"streak"`
 		LastAccessedAt *time.Time `json:"last_accessed_at"`
+		Progress       *float64   `json:"progress"`
 	}
 
 	var data []ActiveGoalsResponse
@@ -662,6 +593,7 @@ func GetActiveGoals(c *gin.Context) {
 			Status:         goal.Status,
 			TimeSpend:      goal.TimeSpend,
 			LastAccessedAt: goal.LastAccessedAt,
+			Progress:       goal.Progress,
 		})
 	}
 
