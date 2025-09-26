@@ -95,3 +95,50 @@ func GetQuickMetrics(c *gin.Context) {
 		"tasks_completed_change": tasksCompletedChange,
 	})
 }
+
+func GetProductivityTrendData(c *gin.Context) {
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if endDate != "" {
+		t, err := time.Parse("02-01-2006", endDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+			return
+		}
+		endDate = t.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	type DailySession struct {
+		Date     string `json:"date"`
+		Duration int64  `json:"duration"`
+	}
+
+	var sessions []DailySession
+
+	if startDate != "" && endDate != "" {
+		if err := db.DB.Model(&models.TaskSession{}).
+			Select("DATE(start_time) as date, COALESCE(SUM(duration), 0) as duration").
+			Where("user_id = ? AND start_time BETWEEN ? AND ?", userId, startDate, endDate).
+			Group("DATE(start_time)").
+			Order("date").
+			Scan(&sessions).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch task sessions!"})
+			return
+		}
+	} else {
+		if err := db.DB.Model(&models.TaskSession{}).
+			Select("DATE(start_time) as date, COALESCE(SUM(duration), 0) as duration").
+			Where("user_id = ?", userId).
+			Group("DATE(start_time)").
+			Order("date").
+			Scan(&sessions).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch task sessions!"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
+}

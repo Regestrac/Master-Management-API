@@ -93,6 +93,7 @@ func SetupRouter() {
 	router.PUT("/settings/reset", settings.ResetSettings)
 
 	router.GET("/analytics/quick-metrics", analytics.GetQuickMetrics)
+	router.GET("/analytics/productivity-chart", analytics.GetProductivityTrendData)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
