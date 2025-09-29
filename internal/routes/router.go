@@ -95,6 +95,7 @@ func SetupRouter() {
 	router.GET("/analytics/quick-metrics", analytics.GetQuickMetrics)
 	router.GET("/analytics/productivity-chart", analytics.GetProductivityTrendData)
 	router.GET("/analytics/task-distribution", analytics.GetTaskDistributionData)
+	router.GET("/analytics/goal-progress", analytics.GetGoalProgressInsights)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))

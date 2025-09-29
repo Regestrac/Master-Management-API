@@ -178,3 +178,61 @@ func GetTaskDistributionData(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": tasksCount})
 }
+
+func getGoalDuration(goalId uint, startDate string, endDate string) (int64, error) {
+	var duration int64
+	query := db.DB.Model(&models.TaskSession{}).Where("task_id = ?", goalId)
+
+	if startDate != "" && endDate != "" {
+		query.Where("start_time BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := query.Select("COALESCE(SUM(duration),0)").Scan(&duration).Error; err != nil {
+		return 0, err
+	}
+
+	return duration, nil
+}
+
+func GetGoalProgressInsights(c *gin.Context) {
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if endDate != "" {
+		t, err := time.Parse("02-01-2006", endDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+			return
+		}
+		endDate = t.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	type GoalsResponseType struct {
+		ID       uint   `json:"id"`
+		Title    string `json:"title"`
+		DueDate  string `json:"due_date"`
+		Progress string `json:"progress"`
+		Duration int64  `json:"duration"`
+	}
+
+	var goals []GoalsResponseType
+	if err := db.DB.Model(&models.Task{}).
+		Select("id, title, due_date, progress, 0 as duration").
+		Where("user_id = ? AND status = 'inprogress' AND type = 'goal' AND parent_id IS NULL", userId).
+		Scan(&goals).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve goal progress insights!"})
+		return
+	}
+
+	for i := range goals {
+		duration, err := getGoalDuration(goals[i].ID, startDate, endDate)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get goal duration!"})
+			return
+		}
+		goals[i].Duration = duration
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": goals})
+}
