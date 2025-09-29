@@ -142,3 +142,39 @@ func GetProductivityTrendData(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
 }
+
+func GetTaskDistributionData(c *gin.Context) {
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if endDate != "" {
+		t, err := time.Parse("02-01-2006", endDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+			return
+		}
+		endDate = t.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	type TasksDistribution struct {
+		Category string `json:"category"`
+		Count    string `json:"count"`
+	}
+
+	var tasksCount []TasksDistribution
+	query := db.DB.Model(&models.Task{}).Select("COUNT(*) as count, category").Where("user_id = ? AND parent_id IS NULL", userId)
+
+	if startDate != "" && endDate != "" {
+		query = query.Where("completed_at BETWEEN ? AND ?", startDate, endDate)
+	}
+
+	if err := query.Group("category").
+		Scan(&tasksCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get task distribution data!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": tasksCount})
+}
