@@ -20,6 +20,11 @@ type UserResponse struct {
 	Theme      string  `json:"theme"`
 	ActiveTask *uint   `json:"active_task"`
 	AvatarUrl  *string `json:"avatar_url"`
+	TimeZone   *string `json:"time_zone"`
+	Language   string  `json:"language"`
+	Bio        string  `json:"bio"`
+	Company    *string `json:"company"`
+	JobTitle   *string `json:"job_title"`
 }
 
 func StartTaskSession(userID uint, taskID uint) error {
@@ -81,6 +86,11 @@ func GetProfile(c *gin.Context) {
 		Theme:      userData.Theme,
 		ActiveTask: userData.ActiveTask,
 		AvatarUrl:  userData.AvatarUrl,
+		TimeZone:   userData.TimeZone,
+		Company:    userData.Company,
+		Language:   userData.Language,
+		Bio:        userData.Bio,
+		JobTitle:   userData.JobTitle,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
@@ -91,6 +101,11 @@ func UpdateProfile(c *gin.Context) {
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
 		Email     string `json:"email"`
+		TimeZone  string `json:"time_zone"`
+		Language  string `json:"language"`
+		Bio       string `json:"bio"`
+		Company   string `json:"company"`
+		JobTitle  string `json:"job_title"`
 	}
 
 	userDataRaw, exists := c.Get("user")
@@ -121,6 +136,21 @@ func UpdateProfile(c *gin.Context) {
 	}
 	if input.Email != "" {
 		updates["email"] = input.Email
+	}
+	if input.TimeZone != "" {
+		updates["time_zone"] = input.TimeZone
+	}
+	if input.Company != "" {
+		updates["company"] = input.Company
+	}
+	if input.Bio != "" {
+		updates["bio"] = input.Bio
+	}
+	if input.JobTitle != "" {
+		updates["job_title"] = input.JobTitle
+	}
+	if input.Language != "" {
+		updates["language"] = input.Language
 	}
 
 	if err := db.DB.Model(&userData).Updates(updates).Error; err != nil {
