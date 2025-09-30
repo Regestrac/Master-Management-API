@@ -236,3 +236,56 @@ func GetGoalProgressInsights(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": goals})
 }
+
+func GetTimelyInsights(c *gin.Context) {
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if endDate != "" {
+		t, err := time.Parse("02-01-2006", endDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+			return
+		}
+		endDate = t.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	// Get duration by hour of day (0-23)
+	var hourlyData []struct {
+		Hour     int   `json:"hour"`
+		Duration int64 `json:"duration"`
+	}
+	hourQuery := db.DB.Model(&models.TaskSession{}).
+		Select("EXTRACT(HOUR FROM start_time) as hour, COALESCE(SUM(duration), 0) as duration").
+		Where("user_id = ?", userId)
+	if startDate != "" && endDate != "" {
+		hourQuery = hourQuery.Where("start_time BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := hourQuery.Group("hour").Order("hour").Scan(&hourlyData).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch hourly data"})
+		return
+	}
+
+	// Get duration by day of week (0-6, where 0 is Sunday)
+	var dailyData []struct {
+		Day      int   `json:"day"`
+		Duration int64 `json:"duration"`
+	}
+	dayQuery := db.DB.Model(&models.TaskSession{}).
+		Select("EXTRACT(DOW FROM start_time) as day, COALESCE(SUM(duration), 0) as duration").
+		Where("user_id = ?", userId)
+	if startDate != "" && endDate != "" {
+		dayQuery = dayQuery.Where("start_time BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := dayQuery.Group("day").Order("day").Scan(&dailyData).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch daily data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"hourly_distribution": hourlyData,
+		"daily_distribution":  dailyData,
+	})
+}
