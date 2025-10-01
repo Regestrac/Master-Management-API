@@ -162,3 +162,41 @@ func ResetSettings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"settings": settings})
 }
+
+func UpdateTheme(c *gin.Context) {
+	var body struct {
+		Theme string `json:"theme"`
+	}
+
+	userDataRaw, _ := c.Get("user")
+	userId := userDataRaw.(models.User).ID
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var settings models.UserSettings
+	if err := db.DB.Where("user_id = ?", userId).First(&settings).Error; err != nil {
+		if err := CreateUserSettings(userId); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user settings!"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user settings!"})
+		return
+	}
+
+	if body.Theme != "" {
+		settings.Theme = body.Theme
+	}
+
+	if err := db.DB.Save(settings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update theme!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Theme updated successfully.",
+		"theme":   settings.Theme,
+	})
+}

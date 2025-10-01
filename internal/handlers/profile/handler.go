@@ -254,38 +254,6 @@ func UpdateActiveTask(c *gin.Context) {
 	})
 }
 
-func UpdateTheme(c *gin.Context) {
-	var body struct {
-		Theme string `json:"theme"`
-	}
-
-	userDataRaw, _ := c.Get("user")
-	user, ok := userDataRaw.(models.User)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user data"})
-		return
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	if body.Theme != "" {
-		user.Theme = body.Theme
-	}
-
-	if err := db.DB.Save(user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update theme!"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Theme updated successfully.",
-		"theme":   user.Theme,
-	})
-}
-
 func GetQuickStats(c *gin.Context) {
 	userData, _ := c.Get("user")
 	userId := userData.(models.User).ID
