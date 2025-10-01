@@ -289,3 +289,35 @@ func GetTimelyInsights(c *gin.Context) {
 		"daily_distribution":  dailyData,
 	})
 }
+
+func GetFocusSessions(c *gin.Context) {
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+	if endDate != "" {
+		t, err := time.Parse("02-01-2006", endDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
+			return
+		}
+		endDate = t.AddDate(0, 0, 1).Format("2006-01-02")
+	}
+
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var data struct {
+		TotalSessions int64 `json:"total_sessions"`
+		Duration      int64 `json:"duration"`
+	}
+
+	query := db.DB.Model(&models.TaskSession{}).Where("user_id = ?", userId)
+	if startDate != "" && endDate != "" {
+		query.Where("start_time BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := query.Select("COUNT(*) as total_sessions, COALESCE(SUM(duration), 0) as duration").Scan(&data).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve focus session data!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
