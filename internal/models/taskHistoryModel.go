@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type TaskHistory struct {
 	gorm.Model
+	ID     uint   `json:"id" gorm:"primaryKey"`
 	Action string `json:"action"` // "status_update" | "title_update" | "desc_update" | "started" | "stopped" | "created" | "note" | "subtask" | "checklist"
 	Before string `json:"before"`
 	After  string `json:"after"`

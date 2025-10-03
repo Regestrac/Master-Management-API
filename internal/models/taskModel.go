@@ -15,6 +15,7 @@ import (
 
 type Task struct {
 	gorm.Model
+	ID             uint       `json:"id" gorm:"primaryKey"`
 	Title          string     `json:"title"`
 	Description    string     `json:"description"`
 	Status         string     `json:"status"`
@@ -31,4 +32,8 @@ type Task struct {
 	Category       string     `json:"category"`
 	Tags           *[]string  `json:"tags" gorm:"serializer:json"`
 	Achievements   *[]string  `json:"achievements" gorm:"serializer:json"`
+	WorkspaceId    *uint      `json:"workspace_id"`
+	Assignees      *[]uint    `json:"assignees" gorm:"serializer:json"`
+	CompletedAt    *time.Time `json:"completed_at"`
+	Progress       *float64   `json:"progress"`
 }

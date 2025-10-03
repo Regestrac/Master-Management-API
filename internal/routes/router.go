@@ -2,22 +2,32 @@ package routes
 
 import (
 	"fmt"
+	"master-management-api/internal/handlers/analytics"
 	"master-management-api/internal/handlers/auth"
+	"master-management-api/internal/handlers/checklist"
 	"master-management-api/internal/handlers/history"
 	"master-management-api/internal/handlers/note"
 	"master-management-api/internal/handlers/profile"
+	"master-management-api/internal/handlers/settings"
 	"master-management-api/internal/handlers/subtasks"
 	"master-management-api/internal/handlers/task"
+	"master-management-api/internal/handlers/workspace"
 	"master-management-api/internal/middleware"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
+func handleNoRoute(c *gin.Context) {
+	c.JSON(http.StatusForbidden, gin.H{"error": "Invalid API route or endpoint"})
+}
+
 func SetupRouter() {
 	router := gin.Default()
 
 	router.Use(middleware.CORSMiddleware())
+	router.NoRoute(handleNoRoute)
 
 	router.POST("/signup", auth.SignUp)
 	router.POST("/login", auth.Login)
@@ -30,7 +40,7 @@ func SetupRouter() {
 	router.GET("/profile", profile.GetProfile)
 	router.PUT("/profile", profile.UpdateProfile)
 	router.PATCH("/update-active-task", profile.UpdateActiveTask)
-	router.PATCH("/update-theme", profile.UpdateTheme)
+	router.GET("/dashboard/quick-stats", profile.GetQuickStats)
 
 	router.POST("/task", task.CreateTask)
 	router.GET("/tasks", task.GetAllTasks)
@@ -48,9 +58,46 @@ func SetupRouter() {
 	router.POST("/tasks/:id/generate-subtasks", subtasks.GenerateSubTasks)
 	router.POST("/tasks/:id/subtasks", subtasks.SaveSubtasks)
 
+	router.POST("/tasks/:id/generate-tags", task.GenerateTags)
+
+	router.GET("/goals/stats", task.GetGoalStats)
+	router.GET("/goals/active", task.GetActiveGoals)
+
 	router.POST("/note", note.AddNote)
-	router.PATCH("/note/:noteId", note.UpdateNote)
-	router.DELETE("/note/:noteId", note.DeleteNote)
+	router.GET("/notes", note.GetAllNotes)
+	router.PATCH("/notes/:noteId", note.UpdateNote)
+	router.DELETE("/notes/:noteId", note.DeleteNote)
+
+	router.POST("/checklist", checklist.CreateChecklist)
+	router.GET("/checklists", checklist.GetAllChecklists)
+	router.PATCH("/checklists/:id", checklist.UpdateChecklist)
+	router.DELETE("/checklists/:id", checklist.DeleteChecklist)
+	router.POST("/checklists/:id/generate-checklists", checklist.GenerateChecklist)
+	router.POST("/checklists", checklist.SaveChecklists)
+
+	router.POST("/workspace", workspace.CreateWorkspace)
+	router.GET("/workspaces", workspace.GetWorkspaces)
+	router.GET("/workspaces/:workspaceId", workspace.GetWorkspaceById)
+	router.GET("/workspaces/:workspaceId/tasks", workspace.GetWorkspaceTasks)
+	router.GET("/workspaces/:workspaceId/goals", workspace.GetWorkspaceGoals)
+	router.POST("/workspaces/:workspaceId/leave", workspace.LeaveWorkspace)
+
+	router.POST("/workspace/join", workspace.JoinWorkspace)
+	router.GET("/workspaces/:workspaceId/members", workspace.GetMembers)
+	router.DELETE("/workspaces/:workspaceId/members/:memberId", workspace.RemoveMember)
+	router.PATCH("/workspaces/:workspaceId/members/:memberId", workspace.UpdateMember)
+
+	router.GET("/settings", settings.GetUserSettings)
+	router.PATCH("/settings", settings.UpdateUserSettings)
+	router.PUT("/settings/reset", settings.ResetSettings)
+	router.PATCH("/update-theme", settings.UpdateTheme)
+
+	router.GET("/analytics/quick-metrics", analytics.GetQuickMetrics)
+	router.GET("/analytics/productivity-chart", analytics.GetProductivityTrendData)
+	router.GET("/analytics/task-distribution", analytics.GetTaskDistributionData)
+	router.GET("/analytics/goal-progress", analytics.GetGoalProgressInsights)
+	router.GET("/analytics/timely-insights", analytics.GetTimelyInsights)
+	router.GET("/analytics/focus-sessions", analytics.GetFocusSessions)
 
 	router.Run(os.Getenv("PORT"))
 	fmt.Println("Listening to port" + os.Getenv("PORT"))

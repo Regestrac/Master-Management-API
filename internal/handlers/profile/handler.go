@@ -13,12 +13,55 @@ import (
 )
 
 type UserResponse struct {
-	ID         uint   `json:"id"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	Email      string `json:"email"`
-	Theme      string `json:"theme"`
-	ActiveTask *uint  `json:"active_task"`
+	ID         uint    `json:"id" gorm:"primaryKey"`
+	FirstName  string  `json:"first_name"`
+	LastName   string  `json:"last_name"`
+	Email      string  `json:"email"`
+	Theme      string  `json:"theme"`
+	ActiveTask *uint   `json:"active_task"`
+	AvatarUrl  *string `json:"avatar_url"`
+	TimeZone   *string `json:"time_zone"`
+	Language   string  `json:"language"`
+	Bio        string  `json:"bio"`
+	Company    *string `json:"company"`
+	JobTitle   *string `json:"job_title"`
+}
+
+func StartTaskSession(userID uint, taskID uint) error {
+	var activeSession models.TaskSession
+	if err := db.DB.Where("end_time IS NULL").First(&activeSession).Error; err == nil {
+		now := time.Now()
+		activeSession.EndTime = &now
+		activeSession.Duration = int64(now.Sub(activeSession.StartTime).Seconds())
+		if err := db.DB.Save(&activeSession).Error; err != nil {
+			return err
+		}
+	}
+
+	session := models.TaskSession{
+		TaskID:    taskID,
+		UserID:    userID,
+		StartTime: time.Now(),
+	}
+	return db.DB.Create(&session).Error
+}
+
+func StopTaskSession() error {
+	var session models.TaskSession
+	if err := db.DB.Where("end_time IS NULL").First(&session).Error; err != nil {
+		return err
+	}
+
+	now := time.Now()
+	session.EndTime = &now
+	session.Duration = int64(now.Sub(session.StartTime).Seconds())
+
+	// update task.total_time_spend also
+	// db.DB.Model(&models.Task{}).
+	// 	Where("id = ?", session.TaskID).
+	// 	Update("time_spend", gorm.Expr("time_spend + ?", session.Duration))
+
+	return db.DB.Save(&session).Error
 }
 
 func GetProfile(c *gin.Context) {
@@ -42,6 +85,12 @@ func GetProfile(c *gin.Context) {
 		Email:      userData.Email,
 		Theme:      userData.Theme,
 		ActiveTask: userData.ActiveTask,
+		AvatarUrl:  userData.AvatarUrl,
+		TimeZone:   userData.TimeZone,
+		Company:    userData.Company,
+		Language:   userData.Language,
+		Bio:        userData.Bio,
+		JobTitle:   userData.JobTitle,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
@@ -52,6 +101,11 @@ func UpdateProfile(c *gin.Context) {
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
 		Email     string `json:"email"`
+		TimeZone  string `json:"time_zone"`
+		Language  string `json:"language"`
+		Bio       string `json:"bio"`
+		Company   string `json:"company"`
+		JobTitle  string `json:"job_title"`
 	}
 
 	userDataRaw, exists := c.Get("user")
@@ -82,6 +136,21 @@ func UpdateProfile(c *gin.Context) {
 	}
 	if input.Email != "" {
 		updates["email"] = input.Email
+	}
+	if input.TimeZone != "" {
+		updates["time_zone"] = input.TimeZone
+	}
+	if input.Company != "" {
+		updates["company"] = input.Company
+	}
+	if input.Bio != "" {
+		updates["bio"] = input.Bio
+	}
+	if input.JobTitle != "" {
+		updates["job_title"] = input.JobTitle
+	}
+	if input.Language != "" {
+		updates["language"] = input.Language
 	}
 
 	if err := db.DB.Model(&userData).Updates(updates).Error; err != nil {
@@ -148,9 +217,17 @@ func UpdateActiveTask(c *gin.Context) {
 	if body.ActiveTask != nil {
 		updateStartedAt(*body.ActiveTask, user.ID, c)
 		user.ActiveTask = body.ActiveTask
+		if err := StartTaskSession(user.ID, *body.ActiveTask); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log start session! " + err.Error()})
+			return
+		}
 	} else {
 		updateStartedAt(*user.ActiveTask, user.ID, c)
 		user.ActiveTask = nil
+		if err := StopTaskSession(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log stop session! " + err.Error()})
+			return
+		}
 	}
 
 	if err := db.DB.Save(user).Error; err != nil {
@@ -177,34 +254,31 @@ func UpdateActiveTask(c *gin.Context) {
 	})
 }
 
-func UpdateTheme(c *gin.Context) {
-	var body struct {
-		Theme string `json:"theme"`
+func GetQuickStats(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var stats struct {
+		TotalTasks     int64 `json:"total_tasks"`
+		TotalTimeSpend int64 `json:"total_time_spend"`
+		CompletedToday int64 `json:"completed_today"`
+		CurrentStreak  int64 `json:"current_streak"`
 	}
 
-	userDataRaw, _ := c.Get("user")
-	user, ok := userDataRaw.(models.User)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user data"})
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	tomorrow := today.Add(24 * time.Hour)
+	if err := db.DB.Model(&models.Task{}).
+		Select(`
+			COUNT(CASE WHEN type = 'task' AND parent_id IS NULL AND workspace_id IS NULL THEN 1 END) as total_tasks,
+			COALESCE(SUM(time_spend), 0) as total_time_spend,
+			COALESCE(MAX(streak), 0) as current_streak,
+			COUNT(CASE WHEN status = 'completed' AND updated_at >= ? AND updated_at < ? THEN 1 END) as completed_today
+		`, today, tomorrow).
+		Where("user_id = ?", userId).
+		Scan(&stats).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch stats"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	if body.Theme != "" {
-		user.Theme = body.Theme
-	}
-
-	if err := db.DB.Save(user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update theme!"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Theme updated successfully.",
-		"theme":   user.Theme,
-	})
+	c.JSON(http.StatusOK, gin.H{"data": stats})
 }

@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type User struct {
 	gorm.Model
+	ID         uint    `json:"id" gorm:"primaryKey"`
 	FirstName  string  `json:"first_name"`
 	LastName   string  `json:"last_name"`
 	Email      string  `json:"email" gorm:"unique"`
@@ -15,4 +16,6 @@ type User struct {
 	Language   string  `json:"language"`
 	Bio        string  `json:"bio"`
 	Favorites  []uint  `json:"favorites" gorm:"serializer:json"`
+	AvatarUrl  *string `json:"avatar_url"`
+	Company    *string `json:"company"`
 }

@@ -26,6 +26,10 @@ func main() {
 		&models.TaskHistory{},
 		&models.Note{},
 		&models.Checklist{},
+		&models.Workspace{},
+		&models.Member{},
+		&models.UserSettings{},
+		&models.TaskSession{},
 	); err != nil {
 		log.Fatal("Failed to migrate:", err)
 	}
