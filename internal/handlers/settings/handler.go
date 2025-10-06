@@ -1,6 +1,8 @@
 package settings
 
 import (
+	"database/sql"
+	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"net/http"
@@ -199,4 +201,59 @@ func UpdateTheme(c *gin.Context) {
 		"message": "Theme updated successfully.",
 		"theme":   settings.Theme,
 	})
+}
+
+func GetUserStorageUsage(c *gin.Context) {
+	userDataRaw, _ := c.Get("user")
+	userId := userDataRaw.(models.User).ID
+
+	if userId == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var result struct {
+		TotalBytes      int64 `json:"total_bytes"`
+		TasksBytes      int64 `json:"tasks_bytes"`
+		GoalsBytes      int64 `json:"goals_bytes"`
+		WorkspacesBytes int64 `json:"workspaces_bytes"`
+	}
+
+	// Helper to run pg_column_size aggregation
+	calcSize := func(table, condition string, args ...interface{}) int64 {
+		var size sql.NullInt64
+		query := fmt.Sprintf("SELECT COALESCE(SUM(pg_column_size(t)),0) FROM %s t WHERE %s", table, condition)
+		if err := db.DB.Raw(query, args...).Scan(&size).Error; err != nil {
+			return 0
+		}
+		if size.Valid {
+			return size.Int64
+		}
+		return 0
+	}
+
+	// Calculate sizes
+	notesSize := calcSize("notes", "t.user_id = ?", userId)
+	checklistsSize := calcSize("checklists", "t.user_id = ?", userId)
+	membersSize := calcSize("members", "t.user_id = ?", userId)
+	userSize := calcSize("users", "t.id = ?", userId)
+	SessionsSize := calcSize("task_sessions", "t.user_id = ?", userId)
+	HistorySize := calcSize("task_histories", "t.user_id = ?", userId)
+	SettingsSize := calcSize("user_settings", "t.user_id = ?", userId)
+
+	result.TasksBytes = calcSize("tasks", "t.user_id = ? AND t.type = 'task'", userId)
+	result.GoalsBytes = calcSize("tasks", "t.user_id = ? AND t.type = 'goal'", userId)
+	result.WorkspacesBytes = calcSize("workspaces", "t.owner_id = ?", userId) + membersSize
+
+	result.TotalBytes = result.TasksBytes +
+		result.GoalsBytes +
+		result.WorkspacesBytes +
+		SessionsSize +
+		HistorySize +
+		SettingsSize +
+		notesSize +
+		checklistsSize +
+		userSize
+
+	c.JSON(http.StatusOK, result)
 }

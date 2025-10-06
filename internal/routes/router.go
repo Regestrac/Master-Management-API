@@ -90,6 +90,7 @@ func SetupRouter() {
 	router.GET("/settings", settings.GetUserSettings)
 	router.PATCH("/settings", settings.UpdateUserSettings)
 	router.PUT("/settings/reset", settings.ResetSettings)
+	router.GET("/settings/storage", settings.GetUserStorageUsage)
 	router.PATCH("/update-theme", settings.UpdateTheme)
 
 	router.GET("/analytics/quick-metrics", analytics.GetQuickMetrics)
