@@ -2,7 +2,6 @@ package settings
 
 import (
 	"database/sql"
-	"fmt"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"net/http"
@@ -205,24 +204,23 @@ func UpdateTheme(c *gin.Context) {
 
 func GetUserStorageUsage(c *gin.Context) {
 	userDataRaw, _ := c.Get("user")
-	userId := userDataRaw.(models.User).ID
+	userID := userDataRaw.(models.User).ID
 
-	if userId == 0 {
+	if userID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
 		return
 	}
 
 	var result struct {
 		TotalBytes      int64 `json:"total_bytes"`
-		TasksBytes      int64 `json:"tasks_bytes"`
-		GoalsBytes      int64 `json:"goals_bytes"`
+		PersonalTasks   int64 `json:"tasks_bytes"`
+		PersonalGoals   int64 `json:"goals_bytes"`
 		WorkspacesBytes int64 `json:"workspaces_bytes"`
 	}
 
-	// Helper to run pg_column_size aggregation
-	calcSize := func(table, condition string, args ...interface{}) int64 {
+	// helper
+	calcSize := func(query string, args ...interface{}) int64 {
 		var size sql.NullInt64
-		query := fmt.Sprintf("SELECT COALESCE(SUM(pg_column_size(t)),0) FROM %s t WHERE %s", table, condition)
 		if err := db.DB.Raw(query, args...).Scan(&size).Error; err != nil {
 			return 0
 		}
@@ -232,28 +230,46 @@ func GetUserStorageUsage(c *gin.Context) {
 		return 0
 	}
 
-	// Calculate sizes
-	notesSize := calcSize("notes", "t.user_id = ?", userId)
-	checklistsSize := calcSize("checklists", "t.user_id = ?", userId)
-	membersSize := calcSize("members", "t.user_id = ?", userId)
-	userSize := calcSize("users", "t.id = ?", userId)
-	SessionsSize := calcSize("task_sessions", "t.user_id = ?", userId)
-	HistorySize := calcSize("task_histories", "t.user_id = ?", userId)
-	SettingsSize := calcSize("user_settings", "t.user_id = ?", userId)
+	// 1. Personal tasks/goals (not inside a workspace)
+	result.PersonalTasks = calcSize(`
+    SELECT 
+			(SELECT COALESCE(SUM(pg_column_size(t)),0) FROM tasks t WHERE t.user_id = ? AND t.type = 'task' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(n)),0) FROM notes n JOIN tasks t ON n.task_id = t.id WHERE t.user_id = ? AND t.type = 'task' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(c)),0) FROM checklists c JOIN tasks t ON c.task_id = t.id WHERE t.user_id = ? AND t.type = 'task' AND t.workspace_id IS NULL)
+	`, userID, userID, userID)
 
-	result.TasksBytes = calcSize("tasks", "t.user_id = ? AND t.type = 'task'", userId)
-	result.GoalsBytes = calcSize("tasks", "t.user_id = ? AND t.type = 'goal'", userId)
-	result.WorkspacesBytes = calcSize("workspaces", "t.owner_id = ?", userId) + membersSize
+	result.PersonalGoals = calcSize(`
+    SELECT 
+			(SELECT COALESCE(SUM(pg_column_size(t)),0) FROM tasks t WHERE t.user_id = ? AND t.type = 'goal' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(n)),0) FROM notes n JOIN tasks t ON n.task_id = t.id WHERE t.user_id = ? AND t.type = 'goal' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(c)),0) FROM checklists c JOIN tasks t ON c.task_id = t.id WHERE t.user_id = ? AND t.type = 'goal' AND t.workspace_id IS NULL)
+	`, userID, userID, userID)
 
-	result.TotalBytes = result.TasksBytes +
-		result.GoalsBytes +
-		result.WorkspacesBytes +
-		SessionsSize +
-		HistorySize +
-		SettingsSize +
-		notesSize +
-		checklistsSize +
-		userSize
+	// 2. Workspace-related data
+	result.WorkspacesBytes = calcSize(`
+    WITH ws AS (
+        SELECT id FROM workspaces WHERE owner_id = ?
+        UNION
+        SELECT workspace_id FROM members WHERE user_id = ?
+    )
+    SELECT 
+        COALESCE(SUM(pg_column_size(w)),0) + 
+        (SELECT COALESCE(SUM(pg_column_size(t)),0) FROM tasks t WHERE t.workspace_id IN (SELECT id FROM ws)) +
+        (SELECT COALESCE(SUM(pg_column_size(n)),0) FROM notes n JOIN tasks t ON n.task_id = t.id WHERE t.workspace_id IN (SELECT id FROM ws)) +
+        (SELECT COALESCE(SUM(pg_column_size(c)),0) FROM checklists c JOIN tasks t ON c.task_id = t.id WHERE t.workspace_id IN (SELECT id FROM ws)) +
+        (SELECT COALESCE(SUM(pg_column_size(m)),0) FROM members m WHERE m.workspace_id IN (SELECT id FROM ws))
+    FROM workspaces w
+    WHERE w.id IN (SELECT id FROM ws)
+	`, userID, userID)
+
+	// 3. Sessions, history, settings
+	SessionsBytes := calcSize(`SELECT COALESCE(SUM(pg_column_size(s)),0) FROM task_sessions s WHERE s.user_id = ?`, userID)
+	HistoryBytes := calcSize(`SELECT COALESCE(SUM(pg_column_size(h)),0) FROM task_histories h WHERE h.user_id = ?`, userID)
+	SettingsBytes := calcSize(`SELECT COALESCE(SUM(pg_column_size(us)),0) FROM user_settings us WHERE us.user_id = ?`, userID)
+
+	// 4. Total
+	result.TotalBytes = result.PersonalTasks + result.PersonalGoals + result.WorkspacesBytes +
+		SessionsBytes + HistoryBytes + SettingsBytes
 
 	c.JSON(http.StatusOK, result)
 }
