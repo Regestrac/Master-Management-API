@@ -15,25 +15,28 @@ import (
 
 type Task struct {
 	gorm.Model
-	ID             uint       `json:"id" gorm:"primaryKey"`
-	Title          string     `json:"title"`
-	Description    string     `json:"description"`
-	Status         string     `json:"status"`
-	UserId         uint       `json:"user_id"`
-	TimeSpend      uint       `json:"time_spend"`
-	Streak         uint       `json:"streak"`
-	StartedAt      *time.Time `json:"started_at"` // pointer allows null
-	ParentId       *uint      `json:"parent_id"`  // for sub-tasks, nil if no parent
-	LastAccessedAt *time.Time `json:"last_accessed_at"`
-	LastStartedAt  *time.Time `json:"last_started_at"`
-	Priority       *string    `json:"priority"`
-	Type           string     `json:"type"`
-	DueDate        *time.Time `json:"due_date"`
-	Category       string     `json:"category"`
-	Tags           *[]string  `json:"tags" gorm:"serializer:json"`
-	Achievements   *[]string  `json:"achievements" gorm:"serializer:json"`
-	WorkspaceId    *uint      `json:"workspace_id"`
-	Assignees      *[]uint    `json:"assignees" gorm:"serializer:json"`
-	CompletedAt    *time.Time `json:"completed_at"`
-	Progress       *float64   `json:"progress"`
+	ID              uint       `json:"id" gorm:"primaryKey"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	Status          string     `json:"status"`
+	UserId          uint       `json:"user_id"`
+	TimeSpend       uint       `json:"time_spend"`
+	Streak          uint       `json:"streak"`
+	StartedAt       *time.Time `json:"started_at"` // pointer allows null
+	ParentId        *uint      `json:"parent_id"`  // for sub-tasks, nil if no parent
+	LastAccessedAt  *time.Time `json:"last_accessed_at"`
+	LastStartedAt   *time.Time `json:"last_started_at"`
+	Priority        *string    `json:"priority"`
+	Type            string     `json:"type"`
+	DueDate         *time.Time `json:"due_date"`
+	Category        string     `json:"category"`
+	Tags            *[]string  `json:"tags" gorm:"serializer:json"`
+	Achievements    *[]string  `json:"achievements" gorm:"serializer:json"`
+	WorkspaceId     *uint      `json:"workspace_id"`
+	Assignees       *[]uint    `json:"assignees" gorm:"serializer:json"`
+	CompletedAt     *time.Time `json:"completed_at"`
+	Progress        *float64   `json:"progress"`
+	TargetValue     *float64   `json:"target_value"`
+	TargetType      *string    `json:"target_type"`
+	TargetFrequency *string    `json:"target_frequency"`
 }

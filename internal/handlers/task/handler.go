@@ -16,17 +16,20 @@ import (
 )
 
 type TaskResponseType struct {
-	ID             uint       `json:"id" gorm:"primaryKey"`
-	Title          string     `json:"title"`
-	Status         string     `json:"status"`
-	TimeSpend      uint       `json:"time_spend"`
-	Streak         uint       `json:"streak"`
-	Type           string     `json:"type"`
-	Priority       *string    `json:"priority"`
-	DueDate        *time.Time `json:"due_date"`
-	Category       string     `json:"category"`
-	Progress       *float64   `json:"progress"`
-	WeeklyProgress *int64     `json:"weekly_progress"`
+	ID              uint       `json:"id" gorm:"primaryKey"`
+	Title           string     `json:"title"`
+	Status          string     `json:"status"`
+	TimeSpend       uint       `json:"time_spend"`
+	Streak          uint       `json:"streak"`
+	Type            string     `json:"type"`
+	Priority        *string    `json:"priority"`
+	DueDate         *time.Time `json:"due_date"`
+	Category        string     `json:"category"`
+	Progress        *float64   `json:"progress"`
+	WeeklyProgress  *int64     `json:"weekly_progress"`
+	TargetValue     *float64   `json:"target_value"`
+	TargetType      *string    `json:"target_type"`
+	TargetFrequency *string    `json:"target_frequency"`
 }
 
 func UpdateStreak(task *models.Task, saveStartTime bool) uint {
@@ -173,17 +176,20 @@ func GetAllTasks(c *gin.Context) {
 			}
 		}
 		data = append(data, TaskResponseType{
-			ID:             task.ID,
-			Title:          task.Title,
-			Status:         task.Status,
-			TimeSpend:      task.TimeSpend,
-			Streak:         streak,
-			Type:           task.Type,
-			Priority:       task.Priority,
-			DueDate:        task.DueDate,
-			Category:       task.Category,
-			Progress:       task.Progress,
-			WeeklyProgress: &weeklyProgress,
+			ID:              task.ID,
+			Title:           task.Title,
+			Status:          task.Status,
+			TimeSpend:       task.TimeSpend,
+			Streak:          streak,
+			Type:            task.Type,
+			Priority:        task.Priority,
+			DueDate:         task.DueDate,
+			Category:        task.Category,
+			Progress:        task.Progress,
+			WeeklyProgress:  &weeklyProgress,
+			TargetValue:     task.TargetValue,
+			TargetType:      task.TargetType,
+			TargetFrequency: task.TargetFrequency,
 		})
 	}
 
@@ -192,13 +198,16 @@ func GetAllTasks(c *gin.Context) {
 
 func CreateTask(c *gin.Context) {
 	var body struct {
-		Title       string `json:"title"`
-		Status      string `json:"status"`
-		TimeSpend   uint   `json:"time_spend"`
-		Streak      uint   `json:"streak"`
-		ParentId    *uint  `json:"parent_id"` // Optional parent ID for subtasks
-		Type        string `json:"type"`
-		WorkspaceId *uint  `json:"workspace_id"`
+		Title           string   `json:"title"`
+		Status          string   `json:"status"`
+		TimeSpend       uint     `json:"time_spend"`
+		Streak          uint     `json:"streak"`
+		ParentId        *uint    `json:"parent_id"` // Optional parent ID for subtasks
+		Type            string   `json:"type"`
+		WorkspaceId     *uint    `json:"workspace_id"`
+		TargetValue     *float64 `json:"target_value"`
+		TargetType      *string  `json:"target_type"`
+		TargetFrequency *string  `json:"target_frequency"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -220,14 +229,17 @@ func CreateTask(c *gin.Context) {
 	userId := userDataRaw.(models.User).ID
 
 	task := models.Task{
-		UserId:      userId,
-		Title:       body.Title,
-		Status:      body.Status,
-		TimeSpend:   body.TimeSpend,
-		Streak:      body.Streak,
-		ParentId:    body.ParentId, // Set parent ID if provided
-		Type:        body.Type,
-		WorkspaceId: body.WorkspaceId,
+		UserId:          userId,
+		Title:           body.Title,
+		Status:          body.Status,
+		TimeSpend:       body.TimeSpend,
+		Streak:          body.Streak,
+		ParentId:        body.ParentId, // Set parent ID if provided
+		Type:            body.Type,
+		WorkspaceId:     body.WorkspaceId,
+		TargetValue:     body.TargetValue,
+		TargetType:      body.TargetType,
+		TargetFrequency: body.TargetFrequency,
 	}
 
 	result := db.DB.Create(&task)
@@ -327,21 +339,24 @@ func GetTask(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"id":          task.ID,
-			"title":       task.Title,
-			"status":      task.Status,
-			"time_spend":  task.TimeSpend,
-			"streak":      task.Streak,
-			"description": task.Description,
-			"started_at":  task.StartedAt,
-			"parent_id":   task.ParentId,
-			"type":        task.Type,
-			"priority":    task.Priority,
-			"created_at":  task.CreatedAt,
-			"tags":        task.Tags,
-			"notes":       notes,
-			"checklists":  checklists,
-			"progress":    task.Progress,
+			"id":               task.ID,
+			"title":            task.Title,
+			"status":           task.Status,
+			"time_spend":       task.TimeSpend,
+			"streak":           task.Streak,
+			"description":      task.Description,
+			"started_at":       task.StartedAt,
+			"parent_id":        task.ParentId,
+			"type":             task.Type,
+			"priority":         task.Priority,
+			"created_at":       task.CreatedAt,
+			"tags":             task.Tags,
+			"notes":            notes,
+			"checklists":       checklists,
+			"progress":         task.Progress,
+			"target_value":     task.TargetValue,
+			"target_type":      task.TargetType,
+			"target_frequency": task.TargetFrequency,
 		},
 	})
 }
@@ -352,15 +367,18 @@ func UpdateTask(c *gin.Context) {
 	userId := userDataRaw.(models.User).ID
 
 	var body struct {
-		Title       *string   `json:"title"`
-		Status      *string   `json:"status"`
-		TimeSpend   *uint     `json:"time_spend"`
-		Streak      *uint     `json:"streak"`
-		Description *string   `json:"description"`
-		StartedAt   *string   `json:"started_at"` // Accept time as string or empty
-		Priority    *string   `json:"priority"`
-		Tags        *[]string `json:"tags"`
-		Assignees   *[]uint   `json:"assignees"`
+		Title           *string   `json:"title"`
+		Status          *string   `json:"status"`
+		TimeSpend       *uint     `json:"time_spend"`
+		Streak          *uint     `json:"streak"`
+		Description     *string   `json:"description"`
+		StartedAt       *string   `json:"started_at"` // Accept time as string or empty
+		Priority        *string   `json:"priority"`
+		Tags            *[]string `json:"tags"`
+		Assignees       *[]uint   `json:"assignees"`
+		TargetValue     *float64  `json:"target_value"`
+		TargetType      *string   `json:"target_type"`
+		TargetFrequency *string   `json:"target_frequency"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -411,6 +429,15 @@ func UpdateTask(c *gin.Context) {
 	}
 	if body.Assignees != nil {
 		task.Assignees = body.Assignees
+	}
+	if body.TargetValue != nil {
+		task.TargetValue = body.TargetValue
+	}
+	if body.TargetType != nil {
+		task.TargetType = body.TargetType
+	}
+	if body.TargetFrequency != nil {
+		task.TargetFrequency = body.TargetFrequency
 	}
 
 	// Handle StartedAt
@@ -471,6 +498,51 @@ func GetRecentTasks(c *gin.Context) {
 			Streak:         streak,
 			Priority:       task.Priority,
 			Type:           task.Type,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+func GetActiveGoals(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var goals []models.Task
+	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND status = 'inprogress' AND workspace_id IS NULL AND type = 'goal'", userId).Find(&goals).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve active goals"})
+		return
+	}
+
+	type ActiveGoalsResponse struct {
+		ID              uint       `json:"id" gorm:"primaryKey"`
+		Title           string     `json:"title"`
+		Status          string     `json:"status"`
+		TimeSpend       uint       `json:"time_spend"`
+		Type            string     `json:"type"`
+		Streak          uint       `json:"streak"`
+		LastAccessedAt  *time.Time `json:"last_accessed_at"`
+		Progress        *float64   `json:"progress"`
+		TargetValue     *float64   `json:"target_value"`
+		TargetType      *string    `json:"target_type"`
+		TargetFrequency *string    `json:"target_frequency"`
+	}
+
+	var data []ActiveGoalsResponse
+	for _, goal := range goals {
+		streak := UpdateStreak(&goal, false)
+		data = append(data, ActiveGoalsResponse{
+			ID:              goal.ID,
+			Streak:          streak,
+			Type:            goal.Type,
+			Title:           goal.Title,
+			Status:          goal.Status,
+			TimeSpend:       goal.TimeSpend,
+			LastAccessedAt:  goal.LastAccessedAt,
+			Progress:        goal.Progress,
+			TargetValue:     goal.TargetValue,
+			TargetType:      goal.TargetType,
+			TargetFrequency: goal.TargetFrequency,
 		})
 	}
 
@@ -571,45 +643,6 @@ func GetGoalStats(c *gin.Context) {
 		{"status": "paused", "count": goalStats.Paused},
 		{"status": "high_priority", "count": goalStats.HighPriority},
 		{"status": "average_progress", "count": averageProgress},
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": data})
-}
-
-func GetActiveGoals(c *gin.Context) {
-	userData, _ := c.Get("user")
-	userId := userData.(models.User).ID
-
-	var goals []models.Task
-	if err := db.DB.Where("user_id = ? AND parent_id IS NULL AND status = 'inprogress' AND workspace_id IS NULL AND type = 'goal'", userId).Find(&goals).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve active goals"})
-		return
-	}
-
-	type ActiveGoalsResponse struct {
-		ID             uint       `json:"id" gorm:"primaryKey"`
-		Title          string     `json:"title"`
-		Status         string     `json:"status"`
-		TimeSpend      uint       `json:"time_spend"`
-		Type           string     `json:"type"`
-		Streak         uint       `json:"streak"`
-		LastAccessedAt *time.Time `json:"last_accessed_at"`
-		Progress       *float64   `json:"progress"`
-	}
-
-	var data []ActiveGoalsResponse
-	for _, goal := range goals {
-		streak := UpdateStreak(&goal, false)
-		data = append(data, ActiveGoalsResponse{
-			ID:             goal.ID,
-			Streak:         streak,
-			Type:           goal.Type,
-			Title:          goal.Title,
-			Status:         goal.Status,
-			TimeSpend:      goal.TimeSpend,
-			LastAccessedAt: goal.LastAccessedAt,
-			Progress:       goal.Progress,
-		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
