@@ -13,19 +13,20 @@ import (
 
 func GetAllSubtasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID        uint   `json:"id" gorm:"primaryKey"`
-		Title     string `json:"title"`
-		Status    string `json:"status"`
-		TimeSpend uint   `json:"time_spend"`
-		Streak    uint   `json:"streak"`
-		ParentId  *uint  `json:"parent_id"`
+		ID        uint     `json:"id" gorm:"primaryKey"`
+		Title     string   `json:"title"`
+		Status    string   `json:"status"`
+		TimeSpend uint     `json:"time_spend"`
+		Streak    uint     `json:"streak"`
+		ParentId  *uint    `json:"parent_id"`
+		Progress  *float64 `json:"progress"`
 	}
 
 	taskId := c.Param("id")
 
 	var subtasks []models.Task
 
-	if err := db.DB.Where("parent_id = ?", taskId).Find(&subtasks).Error; err != nil {
+	if err := db.DB.Where("parent_id = ?", taskId).Order("title ASC").Find(&subtasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve subtasks"})
 		return
 	}
@@ -39,6 +40,7 @@ func GetAllSubtasks(c *gin.Context) {
 			TimeSpend: task.TimeSpend,
 			Streak:    task.Streak,
 			ParentId:  task.ParentId,
+			Progress:  task.Progress,
 		})
 	}
 
