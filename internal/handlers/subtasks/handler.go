@@ -13,13 +13,15 @@ import (
 
 func GetAllSubtasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID        uint     `json:"id" gorm:"primaryKey"`
-		Title     string   `json:"title"`
-		Status    string   `json:"status"`
-		TimeSpend uint     `json:"time_spend"`
-		Streak    uint     `json:"streak"`
-		ParentId  *uint    `json:"parent_id"`
-		Progress  *float64 `json:"progress"`
+		ID                 uint     `json:"id" gorm:"primaryKey"`
+		Title              string   `json:"title"`
+		Status             string   `json:"status"`
+		TimeSpend          uint     `json:"time_spend"`
+		Streak             uint     `json:"streak"`
+		ParentId           *uint    `json:"parent_id"`
+		Progress           *float64 `json:"progress"`
+		ChecklistCompleted *int64   `json:"checklist_completed"`
+		ChecklistTotal     *int64   `json:"checklist_total"`
 	}
 
 	taskId := c.Param("id")
@@ -33,14 +35,43 @@ func GetAllSubtasks(c *gin.Context) {
 
 	var data []TaskResponseType
 	for _, task := range subtasks {
+		var result struct {
+			TotalCount     int64
+			CompletedCount int64
+		}
+
+		// Get checklist counts
+		// if err := db.DB.Model(&models.Checklist{}).
+		// 	Where("task_id = ?", task.ID).
+		// 	Count(&totalCount).Error; err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count checklists"})
+		// 	return
+		// }
+
+		// if err := db.DB.Model(&models.Checklist{}).
+		// 	Where("task_id = ? AND completed = ?", task.ID, true).
+		// 	Count(&completedCount).Error; err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count completed checklists"})
+		// 	return
+		// }
+		if err := db.DB.Model(&models.Checklist{}).
+			Select("COUNT(*) AS total_count, SUM(CASE WHEN completed = ? THEN 1 ELSE 0 END) AS completed_count", true).
+			Where("task_id = ?", task.ID).
+			Scan(&result).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count checklists"})
+			return
+		}
+
 		data = append(data, TaskResponseType{
-			ID:        task.ID,
-			Title:     task.Title,
-			Status:    task.Status,
-			TimeSpend: task.TimeSpend,
-			Streak:    task.Streak,
-			ParentId:  task.ParentId,
-			Progress:  task.Progress,
+			ID:                 task.ID,
+			Title:              task.Title,
+			Status:             task.Status,
+			TimeSpend:          task.TimeSpend,
+			Streak:             task.Streak,
+			ParentId:           task.ParentId,
+			Progress:           task.Progress,
+			ChecklistCompleted: &result.CompletedCount,
+			ChecklistTotal:     &result.TotalCount,
 		})
 	}
 

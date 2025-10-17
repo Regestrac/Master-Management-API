@@ -108,7 +108,14 @@ func UpdateChecklist(c *gin.Context) {
 	}
 	if body.Completed != nil {
 		checklist.Completed = *body.Completed
+	}
 
+	if db.DB.Save(&checklist).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save checklist!"})
+		return
+	}
+
+	if body.Completed != nil {
 		var task models.Task
 		db.DB.Where("id = ?", checklist.TaskId).First(&task)
 		if task.Type == "goal" {
@@ -117,11 +124,6 @@ func UpdateChecklist(c *gin.Context) {
 				return
 			}
 		}
-	}
-
-	if db.DB.Save(&checklist).Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save checklist!"})
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Updated successfully.", "data": checklist})
