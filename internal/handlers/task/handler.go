@@ -252,9 +252,7 @@ func CreateTask(c *gin.Context) {
 	}
 
 	if body.ParentId != nil {
-		if task.Type == "goal" {
-			utils.RecalculateGoalProgress(task.ID)
-		}
+		utils.RecalculateProgress(task.ID)
 		history.LogHistory("subtask", "", body.Title, *body.ParentId, userId)
 	}
 
@@ -297,9 +295,7 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	if task.ParentId != nil {
-		if task.Type == "goal" {
-			utils.RecalculateGoalProgress(task.ID)
-		}
+		utils.RecalculateProgress(task.ID)
 		c.JSON(http.StatusOK, gin.H{"message": "Sub Task deleted successfully"})
 		return
 	}
@@ -460,6 +456,10 @@ func UpdateTask(c *gin.Context) {
 	if err := db.DB.Save(&task).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
 		return
+	}
+
+	if body.Status != nil && task.ParentId != nil {
+		utils.RecalculateProgress(task.ID)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})

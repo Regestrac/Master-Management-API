@@ -121,16 +121,17 @@ func SaveSubtasks(c *gin.Context) {
 		history.LogHistory("created", "", task.Title, task.ID, userId)
 	}
 
+	var task models.Task
 	if body[0].ParentId != nil {
-		var task models.Task
 		db.DB.Where("id = ?", body[0].ParentId).First(&task)
-		if task.Type == "goal" {
-			if err := utils.RecalculateGoalProgress(task.ID); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
-				return
-			}
+		if err := utils.RecalculateProgress(task.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+			return
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": subtasks})
+	c.JSON(http.StatusOK, gin.H{
+		"data":     subtasks,
+		"progress": task.Progress,
+	})
 }

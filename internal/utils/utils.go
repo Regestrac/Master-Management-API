@@ -45,6 +45,9 @@ func GenerateInviteCode(length int) string {
 }
 
 func CalculateActivityProgress(goal models.Task) float64 {
+	if goal.TargetType == nil {
+		return 0
+	}
 	switch *goal.TargetType {
 	case "hours":
 		totalTarget := *goal.TargetValue * 60 * 60
@@ -63,16 +66,16 @@ func CalculateActivityProgress(goal models.Task) float64 {
 	return 0
 }
 
-func RecalculateGoalProgress(goalID uint) error {
-	var goal models.Task
-	if err := db.DB.First(&goal, "id = ? AND type = ?", goalID, "goal").Error; err != nil {
+func RecalculateProgress(id uint) error {
+	var task models.Task
+	if err := db.DB.First(&task, "id = ?", id).Error; err != nil {
 		return err
 	}
 
 	// Calculate checklist progress
 	var checklistTotal, checklistDone int64
-	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND deleted_at IS NULL", goalID).Count(&checklistTotal)
-	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND completed = true AND deleted_at IS NULL", goalID).Count(&checklistDone)
+	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND deleted_at IS NULL", id).Count(&checklistTotal)
+	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND completed = true AND deleted_at IS NULL", id).Count(&checklistDone)
 
 	checklistProgress := 0.0
 	if checklistTotal > 0 {
@@ -80,17 +83,17 @@ func RecalculateGoalProgress(goalID uint) error {
 	}
 
 	// Calculate time/count progress (placeholder)
-	activityProgress := math.Min(CalculateActivityProgress(goal), 100)
+	activityProgress := math.Min(CalculateActivityProgress(task), 100)
 
 	// Weightage
 	finalProgress := 0.0
-	if goal.ParentId != nil {
+	if task.ParentId != nil {
 		finalProgress = (checklistProgress * 0.5) + (activityProgress * 0.5)
 	} else {
 		// Calculate subtask progress
 		var subtaskTotal, subtaskDone int64
-		db.DB.Model(&models.Task{}).Where("parent_id = ? AND deleted_at IS NULL", goalID).Count(&subtaskTotal)
-		db.DB.Model(&models.Task{}).Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", goalID).Count(&subtaskDone)
+		db.DB.Model(&models.Task{}).Where("parent_id = ? AND deleted_at IS NULL", id).Count(&subtaskTotal)
+		db.DB.Model(&models.Task{}).Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", id).Count(&subtaskDone)
 
 		subtaskProgress := 0.0
 		if subtaskTotal > 0 {
@@ -101,5 +104,5 @@ func RecalculateGoalProgress(goalID uint) error {
 	}
 
 	// Save to DB
-	return db.DB.Model(&goal).Update("progress", finalProgress).Error
+	return db.DB.Model(&task).Update("progress", finalProgress).Error
 }
