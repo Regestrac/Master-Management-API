@@ -13,32 +13,65 @@ import (
 
 func GetAllSubtasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID        uint   `json:"id" gorm:"primaryKey"`
-		Title     string `json:"title"`
-		Status    string `json:"status"`
-		TimeSpend uint   `json:"time_spend"`
-		Streak    uint   `json:"streak"`
-		ParentId  *uint  `json:"parent_id"`
+		ID                 uint     `json:"id" gorm:"primaryKey"`
+		Title              string   `json:"title"`
+		Status             string   `json:"status"`
+		TimeSpend          uint     `json:"time_spend"`
+		Streak             uint     `json:"streak"`
+		ParentId           *uint    `json:"parent_id"`
+		Progress           *float64 `json:"progress"`
+		ChecklistCompleted *int64   `json:"checklist_completed"`
+		ChecklistTotal     *int64   `json:"checklist_total"`
 	}
 
 	taskId := c.Param("id")
 
 	var subtasks []models.Task
 
-	if err := db.DB.Where("parent_id = ?", taskId).Find(&subtasks).Error; err != nil {
+	if err := db.DB.Where("parent_id = ?", taskId).Order("title ASC").Find(&subtasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve subtasks"})
 		return
 	}
 
 	var data []TaskResponseType
 	for _, task := range subtasks {
+		var result struct {
+			TotalCount     int64
+			CompletedCount int64
+		}
+
+		// Get checklist counts
+		// if err := db.DB.Model(&models.Checklist{}).
+		// 	Where("task_id = ?", task.ID).
+		// 	Count(&totalCount).Error; err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count checklists"})
+		// 	return
+		// }
+
+		// if err := db.DB.Model(&models.Checklist{}).
+		// 	Where("task_id = ? AND completed = ?", task.ID, true).
+		// 	Count(&completedCount).Error; err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count completed checklists"})
+		// 	return
+		// }
+		if err := db.DB.Model(&models.Checklist{}).
+			Select("COUNT(*) AS total_count, SUM(CASE WHEN completed = ? THEN 1 ELSE 0 END) AS completed_count", true).
+			Where("task_id = ?", task.ID).
+			Scan(&result).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count checklists"})
+			return
+		}
+
 		data = append(data, TaskResponseType{
-			ID:        task.ID,
-			Title:     task.Title,
-			Status:    task.Status,
-			TimeSpend: task.TimeSpend,
-			Streak:    task.Streak,
-			ParentId:  task.ParentId,
+			ID:                 task.ID,
+			Title:              task.Title,
+			Status:             task.Status,
+			TimeSpend:          task.TimeSpend,
+			Streak:             task.Streak,
+			ParentId:           task.ParentId,
+			Progress:           task.Progress,
+			ChecklistCompleted: &result.CompletedCount,
+			ChecklistTotal:     &result.TotalCount,
 		})
 	}
 
@@ -88,16 +121,17 @@ func SaveSubtasks(c *gin.Context) {
 		history.LogHistory("created", "", task.Title, task.ID, userId)
 	}
 
+	var task models.Task
 	if body[0].ParentId != nil {
-		var task models.Task
 		db.DB.Where("id = ?", body[0].ParentId).First(&task)
-		if task.Type == "goal" {
-			if err := utils.RecalculateGoalProgress(task.ID); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
-				return
-			}
+		if err := utils.RecalculateProgress(task.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+			return
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": subtasks})
+	c.JSON(http.StatusOK, gin.H{
+		"data":     subtasks,
+		"progress": task.Progress,
+	})
 }

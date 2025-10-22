@@ -33,26 +33,26 @@ type UserSettings struct {
 	// Insights          bool `json:"insights"`
 	// TimeBlocking      bool `json:"time_blocking"`
 
-	// TaskReminder  bool `json:"task_reminder"`
-	// GoalProgress  bool `json:"goal_progress"`
-	// SessionBreaks bool `json:"session_breaks"`
-	// DailySummary  bool `json:"daily_summary"`
-	// Milestone     bool `json:"milestone"`
-	// NewFeature    bool `json:"new_feature"`
+	TaskReminder  bool `json:"task_reminder"`
+	GoalProgress  bool `json:"goal_progress"`
+	SessionBreaks bool `json:"session_breaks"`
+	DailySummary  bool `json:"daily_summary"`
+	Milestone     bool `json:"milestone"`
+	NewFeature    bool `json:"new_feature"`
 
-	// CloudSync             bool   `json:"cloud_sync"`
-	// KeepCompletedFor      string `json:"keep_completed_for"`
-	// AnalyticDataRetention string `json:"analytic_data_retention"`
-	// AutoDeleteOldData     bool   `json:"auto_delete_old_data"`
+	CloudSync             bool   `json:"cloud_sync"`
+	KeepCompletedFor      string `json:"keep_completed_for"`
+	AnalyticDataRetention string `json:"analytic_data_retention"`
+	AutoDeleteOldData     bool   `json:"auto_delete_old_data"`
 
 	// UsageData    bool `json:"usage_data"`
 	// Marketing    bool `json:"marketing"`
 	// Integrations bool `json:"integrations"`
 
-	// DebugMode         bool `json:"debug_mode"`
-	// BetaFeatures      bool `json:"beta_features"`
-	// Telemetry         bool `json:"telemetry"`
-	// AIAssistant       bool `json:"ai_assistant"`
-	// AdvancedAnalytics bool `json:"advanced_analytics"`
-	// TeamCollaboration bool `json:"team_collaboration"`
+	DebugMode         bool `json:"debug_mode"`
+	BetaFeatures      bool `json:"beta_features"`
+	Telemetry         bool `json:"telemetry"`
+	AIAssistant       bool `json:"ai_assistant"`
+	AdvancedAnalytics bool `json:"advanced_analytics"`
+	TeamCollaboration bool `json:"team_collaboration"`
 }

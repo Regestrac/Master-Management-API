@@ -39,6 +39,7 @@ func SetupRouter() {
 
 	router.GET("/profile", profile.GetProfile)
 	router.PUT("/profile", profile.UpdateProfile)
+	router.GET("/profile/monthly-stats", profile.GetMonthlyStats)
 	router.PATCH("/update-active-task", profile.UpdateActiveTask)
 	router.GET("/dashboard/quick-stats", profile.GetQuickStats)
 
@@ -90,6 +91,7 @@ func SetupRouter() {
 	router.GET("/settings", settings.GetUserSettings)
 	router.PATCH("/settings", settings.UpdateUserSettings)
 	router.PUT("/settings/reset", settings.ResetSettings)
+	router.GET("/settings/storage", settings.GetUserStorageUsage)
 	router.PATCH("/update-theme", settings.UpdateTheme)
 
 	router.GET("/analytics/quick-metrics", analytics.GetQuickMetrics)

@@ -282,3 +282,67 @@ func GetQuickStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
+
+func GetMonthlyStats(c *gin.Context) {
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	today := now.UTC().AddDate(0, 0, 1).Truncate(24 * time.Hour)
+
+	prevMonthStart := startOfMonth.AddDate(0, -1, 0)
+	prevMonthEnd := startOfMonth.Truncate(24 * time.Hour)
+
+	var stats struct {
+		TasksCompleted     int64   `json:"tasks_completed"`
+		TaskDifference     int64   `json:"task_difference"`
+		GoalsAchieved      int64   `json:"goals_achieved"`
+		GoalDifference     int64   `json:"goal_difference"`
+		FocusDuration      int64   `json:"focus_duration"`
+		DurationDifference int64   `json:"duration_difference"`
+		ProductivityScore  float64 `json:"productivity_score"`
+		ScoreDifference    float64 `json:"score_difference"`
+	}
+
+	var prevStats struct {
+		TasksCompleted    int64   `json:"tasks_completed"`
+		GoalsAchieved     int64   `json:"goals_achieved"`
+		FocusDuration     int64   `json:"focus_duration"`
+		ProductivityScore float64 `json:"productivity_score"`
+	}
+
+	if err := db.DB.Model(models.Task{}).Select(`
+		COUNT(CASE WHEN type = 'task' THEN 1 END) as tasks_completed,
+		COUNT(CASE WHEN type = 'goal' THEN 1 END) as goals_achieved
+	`).Where("status = 'completed' AND completed_at BETWEEN ? AND ?", startOfMonth, today).
+		Scan(&stats).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve completed tasks and goals count!"})
+		return
+	}
+	if err := db.DB.Model(models.Task{}).Select(`
+		COUNT(CASE WHEN type = 'task' THEN 1 END) as tasks_completed,
+		COUNT(CASE WHEN type = 'goal' THEN 1 END) as goals_achieved
+	`).Where("status = 'completed' AND completed_at BETWEEN ? AND ?", prevMonthStart, prevMonthEnd).
+		Scan(&prevStats).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve completed tasks and goals count!"})
+		return
+	}
+	stats.TaskDifference = stats.TasksCompleted - prevStats.TasksCompleted
+	stats.GoalDifference = stats.GoalsAchieved - prevStats.GoalsAchieved
+
+	if err := db.DB.Model(models.TaskSession{}).
+		Select("COALESCE(SUM(duration), 0)").
+		Where("start_time BETWEEN ? AND ?", startOfMonth, today).
+		Scan(&stats.FocusDuration).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve focus duration!"})
+		return
+	}
+	if err := db.DB.Model(models.TaskSession{}).
+		Select("COALESCE(SUM(duration), 0)").
+		Where("start_time BETWEEN ? AND ?", prevMonthStart, prevMonthEnd).
+		Scan(&prevStats.FocusDuration).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve focus duration!"})
+		return
+	}
+	stats.DurationDifference = stats.FocusDuration - prevStats.FocusDuration
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
+}

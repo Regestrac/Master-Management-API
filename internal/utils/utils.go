@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
+	"math"
 	"strings"
 )
 
@@ -44,41 +45,64 @@ func GenerateInviteCode(length int) string {
 }
 
 func CalculateActivityProgress(goal models.Task) float64 {
+	if goal.TargetType == nil {
+		return 0
+	}
+	switch *goal.TargetType {
+	case "hours":
+		totalTarget := *goal.TargetValue * 60 * 60
+		return (float64(goal.TimeSpend) / totalTarget) * 100
+	case "days":
+		totalTarget := *goal.TargetValue * 24 * 60 * 60
+		return (float64(goal.TimeSpend) / totalTarget) * 100
+	case "weeks":
+		totalTarget := *goal.TargetValue * 7 * 24 * 60 * 60
+		return (float64(goal.TimeSpend) / totalTarget) * 100
+	case "months":
+		// Approximating a month as 30 days
+		totalTarget := *goal.TargetValue * 30 * 24 * 60 * 60
+		return (float64(goal.TimeSpend) / totalTarget) * 100
+	}
 	return 0
 }
 
-func RecalculateGoalProgress(goalID uint) error {
-	var goal models.Task
-	if err := db.DB.First(&goal, "id = ? AND type = ?", goalID, "goal").Error; err != nil {
+func RecalculateProgress(id uint) error {
+	var task models.Task
+	if err := db.DB.First(&task, "id = ?", id).Error; err != nil {
 		return err
 	}
 
-	// 1. Calculate checklist progress
+	// Calculate checklist progress
 	var checklistTotal, checklistDone int64
-	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND deleted_at IS NULL", goalID).Count(&checklistTotal)
-	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND completed = true AND deleted_at IS NULL", goalID).Count(&checklistDone)
+	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND deleted_at IS NULL", id).Count(&checklistTotal)
+	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND completed = true AND deleted_at IS NULL", id).Count(&checklistDone)
 
 	checklistProgress := 0.0
 	if checklistTotal > 0 {
-		checklistProgress = float64(checklistDone) / float64(checklistTotal) * 100
+		checklistProgress = (float64(checklistDone) / float64(checklistTotal)) * 100
 	}
 
-	// 2. Calculate subtask progress
-	var subtaskTotal, subtaskDone int64
-	db.DB.Model(&models.Task{}).Where("parent_id = ? AND deleted_at IS NULL", goalID).Count(&subtaskTotal)
-	db.DB.Model(&models.Task{}).Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", goalID).Count(&subtaskDone)
+	// Calculate time/count progress (placeholder)
+	activityProgress := math.Min(CalculateActivityProgress(task), 100)
 
-	subtaskProgress := 0.0
-	if subtaskTotal > 0 {
-		subtaskProgress = float64(subtaskDone) / float64(subtaskTotal) * 100
+	// Weightage
+	finalProgress := 0.0
+	if task.ParentId != nil {
+		finalProgress = (checklistProgress * 0.5) + (activityProgress * 0.5)
+	} else {
+		// Calculate subtask progress
+		var subtaskTotal, subtaskDone int64
+		db.DB.Model(&models.Task{}).Where("parent_id = ? AND deleted_at IS NULL", id).Count(&subtaskTotal)
+		db.DB.Model(&models.Task{}).Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", id).Count(&subtaskDone)
+
+		subtaskProgress := 0.0
+		if subtaskTotal > 0 {
+			subtaskProgress = (float64(subtaskDone) / float64(subtaskTotal)) * 100
+		}
+
+		finalProgress = (checklistProgress * 0.25) + (subtaskProgress * 0.25) + (activityProgress * 0.5)
 	}
 
-	// 3. Calculate time/count progress (placeholder)
-	activityProgress := CalculateActivityProgress(goal)
-
-	// 4. Weightage (25% + 25% + 50%)
-	finalProgress := (checklistProgress*0.25 + subtaskProgress*0.25 + activityProgress*0.5)
-
-	// 5. Save to DB
-	return db.DB.Model(&goal).Update("progress", finalProgress).Error
+	// Save to DB
+	return db.DB.Model(&task).Update("progress", finalProgress).Error
 }

@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"database/sql"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"net/http"
@@ -51,20 +52,36 @@ func UpdateUserSettings(c *gin.Context) {
 	userId := userData.(models.User).ID
 
 	var body struct {
-		UserId            *uint   `json:"user_id"`
-		DateFormat        *string `json:"date_format"`
-		TimeFormat        *string `json:"time_format"`
-		FirstDayOfWeek    *string `json:"first_day_of_week"`
-		WorkWeek          *string `json:"work_week"`
-		Theme             *string `json:"theme"`
-		AccentColor       *string `json:"accent_color"`
-		FocusDuration     *uint   `json:"focus_duration"`
-		ShortBreak        *uint   `json:"short_break"`
-		LongBreak         *uint   `json:"long_break"`
-		AutoBreak         *bool   `json:"auto_break"`
-		LongBreakAfter    *uint   `json:"long_break_after"`
-		GoalDuration      *uint   `json:"goal_duration"`
-		WeeklyTargetHours *uint   `json:"weekly_target_hours"`
+		UserId                *uint   `json:"user_id"`
+		DateFormat            *string `json:"date_format"`
+		TimeFormat            *string `json:"time_format"`
+		FirstDayOfWeek        *string `json:"first_day_of_week"`
+		WorkWeek              *string `json:"work_week"`
+		Theme                 *string `json:"theme"`
+		AccentColor           *string `json:"accent_color"`
+		FocusDuration         *uint   `json:"focus_duration"`
+		ShortBreak            *uint   `json:"short_break"`
+		LongBreak             *uint   `json:"long_break"`
+		AutoBreak             *bool   `json:"auto_break"`
+		LongBreakAfter        *uint   `json:"long_break_after"`
+		GoalDuration          *uint   `json:"goal_duration"`
+		WeeklyTargetHours     *uint   `json:"weekly_target_hours"`
+		TaskReminder          *bool   `json:"task_reminder"`
+		GoalProgress          *bool   `json:"goal_progress"`
+		SessionBreaks         *bool   `json:"session_breaks"`
+		DailySummary          *bool   `json:"daily_summary"`
+		Milestone             *bool   `json:"milestone"`
+		NewFeature            *bool   `json:"new_feature"`
+		CloudSync             *bool   `json:"cloud_sync"`
+		KeepCompletedFor      *string `json:"keep_completed_for"`
+		AnalyticDataRetention *string `json:"analytic_data_retention"`
+		AutoDeleteOldData     *bool   `json:"auto_delete_old_data"`
+		DebugMode             *bool   `json:"debug_mode"`
+		BetaFeatures          *bool   `json:"beta_features"`
+		Telemetry             *bool   `json:"telemetry"`
+		AIAssistant           *bool   `json:"ai_assistant"`
+		AdvancedAnalytics     *bool   `json:"advanced_analytics"`
+		TeamCollaboration     *bool   `json:"team_collaboration"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -119,6 +136,54 @@ func UpdateUserSettings(c *gin.Context) {
 	}
 	if body.WeeklyTargetHours != nil {
 		settings.WeeklyTargetHours = *body.WeeklyTargetHours
+	}
+	if body.TaskReminder != nil {
+		settings.TaskReminder = *body.TaskReminder
+	}
+	if body.GoalProgress != nil {
+		settings.GoalProgress = *body.GoalProgress
+	}
+	if body.SessionBreaks != nil {
+		settings.SessionBreaks = *body.SessionBreaks
+	}
+	if body.DailySummary != nil {
+		settings.DailySummary = *body.DailySummary
+	}
+	if body.Milestone != nil {
+		settings.Milestone = *body.Milestone
+	}
+	if body.NewFeature != nil {
+		settings.NewFeature = *body.NewFeature
+	}
+	if body.CloudSync != nil {
+		settings.CloudSync = *body.CloudSync
+	}
+	if body.KeepCompletedFor != nil {
+		settings.KeepCompletedFor = *body.KeepCompletedFor
+	}
+	if body.AnalyticDataRetention != nil {
+		settings.AnalyticDataRetention = *body.AnalyticDataRetention
+	}
+	if body.AutoDeleteOldData != nil {
+		settings.AutoDeleteOldData = *body.AutoDeleteOldData
+	}
+	if body.DebugMode != nil {
+		settings.DebugMode = *body.DebugMode
+	}
+	if body.BetaFeatures != nil {
+		settings.BetaFeatures = *body.BetaFeatures
+	}
+	if body.Telemetry != nil {
+		settings.Telemetry = *body.Telemetry
+	}
+	if body.AIAssistant != nil {
+		settings.AIAssistant = *body.AIAssistant
+	}
+	if body.AdvancedAnalytics != nil {
+		settings.AdvancedAnalytics = *body.AdvancedAnalytics
+	}
+	if body.TeamCollaboration != nil {
+		settings.TeamCollaboration = *body.TeamCollaboration
 	}
 
 	body.UserId = &userId
@@ -199,4 +264,76 @@ func UpdateTheme(c *gin.Context) {
 		"message": "Theme updated successfully.",
 		"theme":   settings.Theme,
 	})
+}
+
+func GetUserStorageUsage(c *gin.Context) {
+	userDataRaw, _ := c.Get("user")
+	userID := userDataRaw.(models.User).ID
+
+	if userID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var result struct {
+		TotalBytes      int64 `json:"total_bytes"`
+		PersonalTasks   int64 `json:"tasks_bytes"`
+		PersonalGoals   int64 `json:"goals_bytes"`
+		WorkspacesBytes int64 `json:"workspaces_bytes"`
+	}
+
+	// helper
+	calcSize := func(query string, args ...interface{}) int64 {
+		var size sql.NullInt64
+		if err := db.DB.Raw(query, args...).Scan(&size).Error; err != nil {
+			return 0
+		}
+		if size.Valid {
+			return size.Int64
+		}
+		return 0
+	}
+
+	// 1. Personal tasks/goals (not inside a workspace)
+	result.PersonalTasks = calcSize(`
+    SELECT 
+			(SELECT COALESCE(SUM(pg_column_size(t)),0) FROM tasks t WHERE t.user_id = ? AND t.type = 'task' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(n)),0) FROM notes n JOIN tasks t ON n.task_id = t.id WHERE t.user_id = ? AND t.type = 'task' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(c)),0) FROM checklists c JOIN tasks t ON c.task_id = t.id WHERE t.user_id = ? AND t.type = 'task' AND t.workspace_id IS NULL)
+	`, userID, userID, userID)
+
+	result.PersonalGoals = calcSize(`
+    SELECT 
+			(SELECT COALESCE(SUM(pg_column_size(t)),0) FROM tasks t WHERE t.user_id = ? AND t.type = 'goal' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(n)),0) FROM notes n JOIN tasks t ON n.task_id = t.id WHERE t.user_id = ? AND t.type = 'goal' AND t.workspace_id IS NULL) +
+			(SELECT COALESCE(SUM(pg_column_size(c)),0) FROM checklists c JOIN tasks t ON c.task_id = t.id WHERE t.user_id = ? AND t.type = 'goal' AND t.workspace_id IS NULL)
+	`, userID, userID, userID)
+
+	// 2. Workspace-related data
+	result.WorkspacesBytes = calcSize(`
+    WITH ws AS (
+        SELECT id FROM workspaces WHERE owner_id = ?
+        UNION
+        SELECT workspace_id FROM members WHERE user_id = ?
+    )
+    SELECT 
+        COALESCE(SUM(pg_column_size(w)),0) + 
+        (SELECT COALESCE(SUM(pg_column_size(t)),0) FROM tasks t WHERE t.workspace_id IN (SELECT id FROM ws)) +
+        (SELECT COALESCE(SUM(pg_column_size(n)),0) FROM notes n JOIN tasks t ON n.task_id = t.id WHERE t.workspace_id IN (SELECT id FROM ws)) +
+        (SELECT COALESCE(SUM(pg_column_size(c)),0) FROM checklists c JOIN tasks t ON c.task_id = t.id WHERE t.workspace_id IN (SELECT id FROM ws)) +
+        (SELECT COALESCE(SUM(pg_column_size(m)),0) FROM members m WHERE m.workspace_id IN (SELECT id FROM ws))
+    FROM workspaces w
+    WHERE w.id IN (SELECT id FROM ws)
+	`, userID, userID)
+
+	// 3. Sessions, history, settings
+	SessionsBytes := calcSize(`SELECT COALESCE(SUM(pg_column_size(s)),0) FROM task_sessions s WHERE s.user_id = ?`, userID)
+	HistoryBytes := calcSize(`SELECT COALESCE(SUM(pg_column_size(h)),0) FROM task_histories h WHERE h.user_id = ?`, userID)
+	SettingsBytes := calcSize(`SELECT COALESCE(SUM(pg_column_size(us)),0) FROM user_settings us WHERE us.user_id = ?`, userID)
+
+	// 4. Total
+	result.TotalBytes = result.PersonalTasks + result.PersonalGoals + result.WorkspacesBytes +
+		SessionsBytes + HistoryBytes + SettingsBytes
+
+	c.JSON(http.StatusOK, result)
 }
