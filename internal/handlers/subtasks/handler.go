@@ -7,21 +7,23 @@ import (
 	"master-management-api/internal/utils"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetAllSubtasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID                 uint     `json:"id" gorm:"primaryKey"`
-		Title              string   `json:"title"`
-		Status             string   `json:"status"`
-		TimeSpend          uint     `json:"time_spend"`
-		Streak             uint     `json:"streak"`
-		ParentId           *uint    `json:"parent_id"`
-		Progress           *float64 `json:"progress"`
-		ChecklistCompleted *int64   `json:"checklist_completed"`
-		ChecklistTotal     *int64   `json:"checklist_total"`
+		ID                 uint       `json:"id" gorm:"primaryKey"`
+		Title              string     `json:"title"`
+		Status             string     `json:"status"`
+		TimeSpend          uint       `json:"time_spend"`
+		Streak             uint       `json:"streak"`
+		ParentId           *uint      `json:"parent_id"`
+		Progress           *float64   `json:"progress"`
+		ChecklistCompleted *int64     `json:"checklist_completed"`
+		ChecklistTotal     *int64     `json:"checklist_total"`
+		DueDate            *time.Time `json:"due_date"`
 	}
 
 	taskId := c.Param("id")
@@ -72,6 +74,7 @@ func GetAllSubtasks(c *gin.Context) {
 			Progress:           task.Progress,
 			ChecklistCompleted: &result.CompletedCount,
 			ChecklistTotal:     &result.TotalCount,
+			DueDate:            task.DueDate,
 		})
 	}
 

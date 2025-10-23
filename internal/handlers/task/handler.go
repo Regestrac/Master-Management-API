@@ -209,6 +209,7 @@ func CreateTask(c *gin.Context) {
 		TargetValue     *float64 `json:"target_value"`
 		TargetType      *string  `json:"target_type"`
 		TargetFrequency *string  `json:"target_frequency"`
+		DueDate         *string  `json:"due_date"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -241,6 +242,14 @@ func CreateTask(c *gin.Context) {
 		TargetValue:     body.TargetValue,
 		TargetType:      body.TargetType,
 		TargetFrequency: body.TargetFrequency,
+	}
+	if *body.DueDate != "" {
+		parsedDate, err := time.Parse(time.DateOnly, *body.DueDate)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid due_date format."})
+			return
+		}
+		task.DueDate = &parsedDate
 	}
 
 	result := db.DB.Create(&task)
@@ -368,6 +377,7 @@ func GetTask(c *gin.Context) {
 			"target_value":     task.TargetValue,
 			"target_type":      task.TargetType,
 			"target_frequency": task.TargetFrequency,
+			"due_date":         task.DueDate,
 		},
 	})
 }
@@ -390,6 +400,7 @@ func UpdateTask(c *gin.Context) {
 		TargetValue     *float64  `json:"target_value"`
 		TargetType      *string   `json:"target_type"`
 		TargetFrequency *string   `json:"target_frequency"`
+		DueDate         *string   `json:"due_date"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -450,6 +461,18 @@ func UpdateTask(c *gin.Context) {
 	if body.TargetFrequency != nil {
 		task.TargetFrequency = body.TargetFrequency
 	}
+	if body.DueDate != nil {
+		if *body.DueDate == "" {
+			task.DueDate = nil
+		} else {
+			parsedDue, err := time.Parse(time.DateOnly, *body.DueDate)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid due_date format."})
+				return
+			}
+			task.DueDate = &parsedDue
+		}
+	}
 
 	// Handle StartedAt
 	if body.StartedAt != nil {
@@ -508,6 +531,7 @@ func GetRecentTasks(c *gin.Context) {
 		Streak         uint       `json:"streak"`
 		Priority       *string    `json:"priority"`
 		Type           string     `json:"type"`
+		DueDate        *time.Time `json:"due_date"`
 	}
 
 	var data []RecentTaskResponse
@@ -522,6 +546,7 @@ func GetRecentTasks(c *gin.Context) {
 			Streak:         streak,
 			Priority:       task.Priority,
 			Type:           task.Type,
+			DueDate:        task.DueDate,
 		})
 	}
 
@@ -550,6 +575,7 @@ func GetActiveGoals(c *gin.Context) {
 		TargetValue     *float64   `json:"target_value"`
 		TargetType      *string    `json:"target_type"`
 		TargetFrequency *string    `json:"target_frequency"`
+		DueDate         *time.Time `json:"due_date"`
 	}
 
 	var data []ActiveGoalsResponse
@@ -567,6 +593,7 @@ func GetActiveGoals(c *gin.Context) {
 			TargetValue:     goal.TargetValue,
 			TargetType:      goal.TargetType,
 			TargetFrequency: goal.TargetFrequency,
+			DueDate:         goal.DueDate,
 		})
 	}
 
