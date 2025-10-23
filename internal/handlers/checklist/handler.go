@@ -37,15 +37,16 @@ func CreateChecklist(c *gin.Context) {
 
 	var task models.Task
 	db.DB.Where("id = ?", body.TaskId).First(&task)
-	if err := utils.RecalculateProgress(body.TaskId); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+	progress, err := utils.RecalculateProgress(body.TaskId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Checklist created successfully.",
 		"data":     checklist,
-		"progress": task.Progress,
+		"progress": progress,
 	})
 }
 
@@ -115,10 +116,13 @@ func UpdateChecklist(c *gin.Context) {
 	}
 
 	var task models.Task
+	var taskProgress float64
 	if body.Completed != nil {
 		db.DB.Where("id = ?", checklist.TaskId).First(&task)
-		if err := utils.RecalculateProgress(task.ID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+		progress, err := utils.RecalculateProgress(task.ID)
+		taskProgress = progress
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 			return
 		}
 	}
@@ -126,7 +130,7 @@ func UpdateChecklist(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Updated successfully.",
 		"data":     checklist,
-		"progress": task.Progress,
+		"progress": taskProgress,
 	})
 }
 
@@ -150,14 +154,15 @@ func DeleteChecklist(c *gin.Context) {
 
 	var task models.Task
 	db.DB.Where("id = ?", checklist.TaskId).First(&task)
-	if err := utils.RecalculateProgress(task.ID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+	progress, err := utils.RecalculateProgress(task.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Deleted successfully.",
-		"progress": task.Progress,
+		"progress": progress,
 	})
 }
 
@@ -193,14 +198,15 @@ func SaveChecklists(c *gin.Context) {
 
 	var task models.Task
 	db.DB.Where("id = ?", body[0].TaskId).First(&task)
-	if err := utils.RecalculateProgress(task.ID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+	progress, err := utils.RecalculateProgress(task.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Checklists added successfully.",
 		"data":     checklists,
-		"progress": task.Progress,
+		"progress": progress,
 	})
 }

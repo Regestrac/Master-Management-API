@@ -30,6 +30,7 @@ type TaskResponseType struct {
 	TargetValue     *float64   `json:"target_value"`
 	TargetType      *string    `json:"target_type"`
 	TargetFrequency *string    `json:"target_frequency"`
+	ParentProgress  *float64   `json:"parent_progress"`
 }
 
 func UpdateStreak(task *models.Task, saveStartTime bool) uint {
@@ -251,8 +252,14 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 
+	var parentProgress float64
 	if body.ParentId != nil {
-		utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(task.ID)
+		parentProgress = progress
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
+			return
+		}
 		history.LogHistory("subtask", "", body.Title, *body.ParentId, userId)
 	}
 
@@ -261,15 +268,16 @@ func CreateTask(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Task Created successfully.",
 		"data": TaskResponseType{
-			ID:        task.ID,
-			Title:     task.Title,
-			Status:    task.Status,
-			TimeSpend: task.TimeSpend,
-			Streak:    task.Streak,
-			Type:      task.Type,
-			Priority:  task.Priority,
-			DueDate:   task.DueDate,
-			Category:  task.Category,
+			ID:             task.ID,
+			Title:          task.Title,
+			Status:         task.Status,
+			TimeSpend:      task.TimeSpend,
+			Streak:         task.Streak,
+			Type:           task.Type,
+			Priority:       task.Priority,
+			DueDate:        task.DueDate,
+			Category:       task.Category,
+			ParentProgress: &parentProgress,
 		},
 	})
 }
@@ -295,8 +303,15 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	if task.ParentId != nil {
-		utils.RecalculateProgress(task.ID)
-		c.JSON(http.StatusOK, gin.H{"message": "Sub Task deleted successfully"})
+		progress, err := utils.RecalculateProgress(task.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message":         "Sub Task deleted successfully",
+			"parent_progress": progress,
+		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
@@ -459,7 +474,16 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	if body.Status != nil && task.ParentId != nil {
-		utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(task.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message":         "Task updated successfully",
+			"parent_progress": progress,
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})

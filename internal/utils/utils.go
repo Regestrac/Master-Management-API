@@ -66,43 +66,77 @@ func CalculateActivityProgress(goal models.Task) float64 {
 	return 0
 }
 
-func RecalculateProgress(id uint) error {
+func RecalculateProgress(id uint) (float64, error) {
 	var task models.Task
 	if err := db.DB.First(&task, "id = ?", id).Error; err != nil {
-		return err
+		return 0, err
 	}
 
-	// Calculate checklist progress
+	// 1️⃣ Checklist Progress
 	var checklistTotal, checklistDone int64
-	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND deleted_at IS NULL", id).Count(&checklistTotal)
-	db.DB.Model(&models.Checklist{}).Where("task_id = ? AND completed = true AND deleted_at IS NULL", id).Count(&checklistDone)
+	db.DB.Model(&models.Checklist{}).
+		Where("task_id = ? AND deleted_at IS NULL", id).
+		Count(&checklistTotal)
+
+	db.DB.Model(&models.Checklist{}).
+		Where("task_id = ? AND completed = true AND deleted_at IS NULL", id).
+		Count(&checklistDone)
 
 	checklistProgress := 0.0
 	if checklistTotal > 0 {
 		checklistProgress = (float64(checklistDone) / float64(checklistTotal)) * 100
 	}
 
-	// Calculate time/count progress (placeholder)
-	activityProgress := math.Min(CalculateActivityProgress(task), 100)
+	// 2️⃣ Subtask Progress (only for parent goals)
+	var subtaskTotal, subtaskDone int64
+	db.DB.Model(&models.Task{}).
+		Where("parent_id = ? AND deleted_at IS NULL", id).
+		Count(&subtaskTotal)
 
-	// Weightage
-	finalProgress := 0.0
-	if task.ParentId != nil {
-		finalProgress = (checklistProgress * 0.5) + (activityProgress * 0.5)
-	} else {
-		// Calculate subtask progress
-		var subtaskTotal, subtaskDone int64
-		db.DB.Model(&models.Task{}).Where("parent_id = ? AND deleted_at IS NULL", id).Count(&subtaskTotal)
-		db.DB.Model(&models.Task{}).Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", id).Count(&subtaskDone)
+	db.DB.Model(&models.Task{}).
+		Where("parent_id = ? AND status = 'completed' AND deleted_at IS NULL", id).
+		Count(&subtaskDone)
 
-		subtaskProgress := 0.0
-		if subtaskTotal > 0 {
-			subtaskProgress = (float64(subtaskDone) / float64(subtaskTotal)) * 100
-		}
-
-		finalProgress = (checklistProgress * 0.25) + (subtaskProgress * 0.25) + (activityProgress * 0.5)
+	subtaskProgress := 0.0
+	if subtaskTotal > 0 {
+		subtaskProgress = (float64(subtaskDone) / float64(subtaskTotal)) * 100
 	}
 
-	// Save to DB
-	return db.DB.Model(&task).Update("progress", finalProgress).Error
+	// 3️⃣ Activity (time/count) Progress
+	activityProgress := 0.0
+	if task.TargetType != nil {
+		activityProgress = math.Min(CalculateActivityProgress(task), 100)
+	}
+
+	// 4️⃣ Dynamic weight distribution
+	totalWeight := 0.0
+	if checklistTotal > 0 {
+		totalWeight += 1
+	}
+	if subtaskTotal > 0 {
+		totalWeight += 1
+	}
+	if task.TargetType != nil {
+		totalWeight += 1
+	}
+
+	finalProgress := 0.0
+	if totalWeight > 0 {
+		if checklistTotal > 0 {
+			finalProgress += (checklistProgress / totalWeight)
+		}
+		if subtaskTotal > 0 {
+			finalProgress += (subtaskProgress / totalWeight)
+		}
+		if task.TargetType != nil {
+			finalProgress += (activityProgress / totalWeight)
+		}
+	}
+
+	// 5️⃣ Save progress to DB
+	if err := db.DB.Model(&task).Update("progress", finalProgress).Error; err != nil {
+		return 0, err
+	}
+
+	return finalProgress, nil
 }

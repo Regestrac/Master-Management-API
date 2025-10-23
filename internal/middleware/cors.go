@@ -8,7 +8,7 @@ import (
 
 var allowedOrigins = map[string]bool{
 	"http://localhost:5173": true,
-	// "http://localhost:4173": true,
+	"http://localhost:4173": true,
 	// "http://10.13.18.154:5173": true,
 }
 
