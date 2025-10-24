@@ -24,7 +24,7 @@ type TaskResponseType struct {
 	Type            string     `json:"type"`
 	Priority        *string    `json:"priority"`
 	DueDate         *time.Time `json:"due_date"`
-	Category        string     `json:"category"`
+	Category        *string    `json:"category"`
 	Progress        *float64   `json:"progress"`
 	WeeklyProgress  *int64     `json:"weekly_progress"`
 	TargetValue     *float64   `json:"target_value"`
@@ -378,6 +378,7 @@ func GetTask(c *gin.Context) {
 			"target_type":      task.TargetType,
 			"target_frequency": task.TargetFrequency,
 			"due_date":         task.DueDate,
+			"category":         task.Category,
 		},
 	})
 }
@@ -401,6 +402,7 @@ func UpdateTask(c *gin.Context) {
 		TargetType      *string   `json:"target_type"`
 		TargetFrequency *string   `json:"target_frequency"`
 		DueDate         *string   `json:"due_date"`
+		Category        *string   `json:"category"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -461,6 +463,15 @@ func UpdateTask(c *gin.Context) {
 	if body.TargetFrequency != nil {
 		task.TargetFrequency = body.TargetFrequency
 	}
+
+	if body.Category != nil {
+		if *body.Category == "" {
+			task.Category = nil
+		} else {
+			task.Category = body.Category
+		}
+	}
+
 	if body.DueDate != nil {
 		if *body.DueDate == "" {
 			task.DueDate = nil
@@ -532,6 +543,7 @@ func GetRecentTasks(c *gin.Context) {
 		Priority       *string    `json:"priority"`
 		Type           string     `json:"type"`
 		DueDate        *time.Time `json:"due_date"`
+		Category       *string    `json:"category"`
 	}
 
 	var data []RecentTaskResponse
@@ -547,6 +559,7 @@ func GetRecentTasks(c *gin.Context) {
 			Priority:       task.Priority,
 			Type:           task.Type,
 			DueDate:        task.DueDate,
+			Category:       task.Category,
 		})
 	}
 
@@ -576,6 +589,7 @@ func GetActiveGoals(c *gin.Context) {
 		TargetType      *string    `json:"target_type"`
 		TargetFrequency *string    `json:"target_frequency"`
 		DueDate         *time.Time `json:"due_date"`
+		Category        *string    `json:"category"`
 	}
 
 	var data []ActiveGoalsResponse
@@ -594,6 +608,7 @@ func GetActiveGoals(c *gin.Context) {
 			TargetType:      goal.TargetType,
 			TargetFrequency: goal.TargetFrequency,
 			DueDate:         goal.DueDate,
+			Category:        goal.Category,
 		})
 	}
 
@@ -697,4 +712,20 @@ func GetGoalStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+func GetCategories(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var categories []string
+	if err := db.DB.Model(&models.Task{}).
+		Where("user_id = ? AND category IS NOT NULL", userId).
+		Select("DISTINCT category").
+		Scan(&categories).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get categories!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }
