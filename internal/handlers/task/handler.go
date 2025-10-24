@@ -263,7 +263,7 @@ func CreateTask(c *gin.Context) {
 
 	var parentProgress float64
 	if body.ParentId != nil {
-		progress, err := utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(*body.ParentId)
 		parentProgress = progress
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
@@ -312,7 +312,7 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	if task.ParentId != nil {
-		progress, err := utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(*task.ParentId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 			return
@@ -508,7 +508,7 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	if body.Status != nil && task.ParentId != nil {
-		progress, err := utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(*task.ParentId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 			return
