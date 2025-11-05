@@ -24,12 +24,13 @@ type TaskResponseType struct {
 	Type            string     `json:"type"`
 	Priority        *string    `json:"priority"`
 	DueDate         *time.Time `json:"due_date"`
-	Category        string     `json:"category"`
+	Category        *string    `json:"category"`
 	Progress        *float64   `json:"progress"`
 	WeeklyProgress  *int64     `json:"weekly_progress"`
 	TargetValue     *float64   `json:"target_value"`
 	TargetType      *string    `json:"target_type"`
 	TargetFrequency *string    `json:"target_frequency"`
+	ParentProgress  *float64   `json:"parent_progress"`
 }
 
 func UpdateStreak(task *models.Task, saveStartTime bool) uint {
@@ -208,6 +209,7 @@ func CreateTask(c *gin.Context) {
 		TargetValue     *float64 `json:"target_value"`
 		TargetType      *string  `json:"target_type"`
 		TargetFrequency *string  `json:"target_frequency"`
+		DueDate         *string  `json:"due_date"`
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -241,6 +243,14 @@ func CreateTask(c *gin.Context) {
 		TargetType:      body.TargetType,
 		TargetFrequency: body.TargetFrequency,
 	}
+	if *body.DueDate != "" {
+		parsedDate, err := time.Parse(time.DateOnly, *body.DueDate)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid due_date format."})
+			return
+		}
+		task.DueDate = &parsedDate
+	}
 
 	result := db.DB.Create(&task)
 
@@ -251,8 +261,14 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 
+	var parentProgress float64
 	if body.ParentId != nil {
-		utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(*body.ParentId)
+		parentProgress = progress
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
+			return
+		}
 		history.LogHistory("subtask", "", body.Title, *body.ParentId, userId)
 	}
 
@@ -261,15 +277,16 @@ func CreateTask(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Task Created successfully.",
 		"data": TaskResponseType{
-			ID:        task.ID,
-			Title:     task.Title,
-			Status:    task.Status,
-			TimeSpend: task.TimeSpend,
-			Streak:    task.Streak,
-			Type:      task.Type,
-			Priority:  task.Priority,
-			DueDate:   task.DueDate,
-			Category:  task.Category,
+			ID:             task.ID,
+			Title:          task.Title,
+			Status:         task.Status,
+			TimeSpend:      task.TimeSpend,
+			Streak:         task.Streak,
+			Type:           task.Type,
+			Priority:       task.Priority,
+			DueDate:        task.DueDate,
+			Category:       task.Category,
+			ParentProgress: &parentProgress,
 		},
 	})
 }
@@ -295,8 +312,15 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	if task.ParentId != nil {
-		utils.RecalculateProgress(task.ID)
-		c.JSON(http.StatusOK, gin.H{"message": "Sub Task deleted successfully"})
+		progress, err := utils.RecalculateProgress(*task.ParentId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message":         "Sub Task deleted successfully",
+			"parent_progress": progress,
+		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
@@ -353,6 +377,8 @@ func GetTask(c *gin.Context) {
 			"target_value":     task.TargetValue,
 			"target_type":      task.TargetType,
 			"target_frequency": task.TargetFrequency,
+			"due_date":         task.DueDate,
+			"category":         task.Category,
 		},
 	})
 }
@@ -375,6 +401,8 @@ func UpdateTask(c *gin.Context) {
 		TargetValue     *float64  `json:"target_value"`
 		TargetType      *string   `json:"target_type"`
 		TargetFrequency *string   `json:"target_frequency"`
+		DueDate         *string   `json:"due_date"`
+		Category        *string   `json:"category"`
 	}
 
 	if err := c.Bind(&body); err != nil {
@@ -436,6 +464,27 @@ func UpdateTask(c *gin.Context) {
 		task.TargetFrequency = body.TargetFrequency
 	}
 
+	if body.Category != nil {
+		if *body.Category == "" {
+			task.Category = nil
+		} else {
+			task.Category = body.Category
+		}
+	}
+
+	if body.DueDate != nil {
+		if *body.DueDate == "" {
+			task.DueDate = nil
+		} else {
+			parsedDue, err := time.Parse(time.DateOnly, *body.DueDate)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid due_date format."})
+				return
+			}
+			task.DueDate = &parsedDue
+		}
+	}
+
 	// Handle StartedAt
 	if body.StartedAt != nil {
 		if *body.StartedAt == "" {
@@ -459,7 +508,16 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	if body.Status != nil && task.ParentId != nil {
-		utils.RecalculateProgress(task.ID)
+		progress, err := utils.RecalculateProgress(*task.ParentId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message":         "Task updated successfully",
+			"parent_progress": progress,
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})
@@ -484,6 +542,8 @@ func GetRecentTasks(c *gin.Context) {
 		Streak         uint       `json:"streak"`
 		Priority       *string    `json:"priority"`
 		Type           string     `json:"type"`
+		DueDate        *time.Time `json:"due_date"`
+		Category       *string    `json:"category"`
 	}
 
 	var data []RecentTaskResponse
@@ -498,6 +558,8 @@ func GetRecentTasks(c *gin.Context) {
 			Streak:         streak,
 			Priority:       task.Priority,
 			Type:           task.Type,
+			DueDate:        task.DueDate,
+			Category:       task.Category,
 		})
 	}
 
@@ -526,6 +588,8 @@ func GetActiveGoals(c *gin.Context) {
 		TargetValue     *float64   `json:"target_value"`
 		TargetType      *string    `json:"target_type"`
 		TargetFrequency *string    `json:"target_frequency"`
+		DueDate         *time.Time `json:"due_date"`
+		Category        *string    `json:"category"`
 	}
 
 	var data []ActiveGoalsResponse
@@ -543,6 +607,8 @@ func GetActiveGoals(c *gin.Context) {
 			TargetValue:     goal.TargetValue,
 			TargetType:      goal.TargetType,
 			TargetFrequency: goal.TargetFrequency,
+			DueDate:         goal.DueDate,
+			Category:        goal.Category,
 		})
 	}
 
@@ -646,4 +712,20 @@ func GetGoalStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+func GetCategories(c *gin.Context) {
+	userData, _ := c.Get("user")
+	userId := userData.(models.User).ID
+
+	var categories []string
+	if err := db.DB.Model(&models.Task{}).
+		Where("user_id = ? AND category IS NOT NULL", userId).
+		Select("DISTINCT category").
+		Scan(&categories).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get categories!"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }

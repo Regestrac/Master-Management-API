@@ -319,5 +319,53 @@ func GetFocusSessions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": data})
+	// Parse and normalize dates
+	var start, end time.Time
+	var err error
+
+	if startDate != "" {
+		start, err = time.Parse("02-01-2006", startDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid startDate format (expected DD-MM-YYYY)"})
+			return
+		}
+	}
+
+	if endDate != "" {
+		t, err := time.Parse("2006-01-02", endDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid endDate format (expected DD-MM-YYYY)"})
+			return
+		}
+		end = t.AddDate(0, 0, 1) // include full end date
+	}
+
+	type Result struct {
+		Category string `json:"category"`
+		Duration int64  `json:"duration"`
+	}
+
+	var results []Result
+
+	query2 := db.DB.Table("task_sessions AS ts").
+		Select(`
+			COALESCE(t.category, 'Uncategorised') AS category,
+			SUM(ts.duration) AS duration
+		`).
+		Joins("LEFT JOIN tasks t ON t.id = ts.task_id")
+
+	if !start.IsZero() && !end.IsZero() {
+		query2 = query2.Where("ts.created_at BETWEEN ? AND ?", start, end)
+	} else if !start.IsZero() {
+		query2 = query2.Where("ts.created_at >= ?", start)
+	} else if !end.IsZero() {
+		query2 = query2.Where("ts.created_at < ?", end)
+	}
+
+	if err := query2.Group("category").Order("category ASC").Scan(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": data, "sessions": results})
 }

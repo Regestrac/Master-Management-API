@@ -7,21 +7,23 @@ import (
 	"master-management-api/internal/utils"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetAllSubtasks(c *gin.Context) {
 	type TaskResponseType struct {
-		ID                 uint     `json:"id" gorm:"primaryKey"`
-		Title              string   `json:"title"`
-		Status             string   `json:"status"`
-		TimeSpend          uint     `json:"time_spend"`
-		Streak             uint     `json:"streak"`
-		ParentId           *uint    `json:"parent_id"`
-		Progress           *float64 `json:"progress"`
-		ChecklistCompleted *int64   `json:"checklist_completed"`
-		ChecklistTotal     *int64   `json:"checklist_total"`
+		ID                 uint       `json:"id" gorm:"primaryKey"`
+		Title              string     `json:"title"`
+		Status             string     `json:"status"`
+		TimeSpend          uint       `json:"time_spend"`
+		Streak             uint       `json:"streak"`
+		ParentId           *uint      `json:"parent_id"`
+		Progress           *float64   `json:"progress"`
+		ChecklistCompleted *int64     `json:"checklist_completed"`
+		ChecklistTotal     *int64     `json:"checklist_total"`
+		DueDate            *time.Time `json:"due_date"`
 	}
 
 	taskId := c.Param("id")
@@ -72,6 +74,7 @@ func GetAllSubtasks(c *gin.Context) {
 			Progress:           task.Progress,
 			ChecklistCompleted: &result.CompletedCount,
 			ChecklistTotal:     &result.TotalCount,
+			DueDate:            task.DueDate,
 		})
 	}
 
@@ -121,17 +124,18 @@ func SaveSubtasks(c *gin.Context) {
 		history.LogHistory("created", "", task.Title, task.ID, userId)
 	}
 
-	var task models.Task
+	var taskProgress float64
 	if body[0].ParentId != nil {
-		db.DB.Where("id = ?", body[0].ParentId).First(&task)
-		if err := utils.RecalculateProgress(task.ID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate goal progress!"})
+		progress, err := utils.RecalculateProgress(*body[0].ParentId)
+		taskProgress = progress
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to recalculate progress!"})
 			return
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":     subtasks,
-		"progress": task.Progress,
+		"progress": taskProgress,
 	})
 }

@@ -29,7 +29,7 @@ type Task struct {
 	Priority        *string    `json:"priority"`
 	Type            string     `json:"type"`
 	DueDate         *time.Time `json:"due_date"`
-	Category        string     `json:"category"`
+	Category        *string    `json:"category"`
 	Tags            *[]string  `json:"tags" gorm:"serializer:json"`
 	Achievements    *[]string  `json:"achievements" gorm:"serializer:json"`
 	WorkspaceId     *uint      `json:"workspace_id"`
