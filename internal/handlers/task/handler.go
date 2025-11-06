@@ -243,7 +243,7 @@ func CreateTask(c *gin.Context) {
 		TargetType:      body.TargetType,
 		TargetFrequency: body.TargetFrequency,
 	}
-	if *body.DueDate != "" {
+	if body.DueDate != nil && *body.DueDate != "" {
 		parsedDate, err := time.Parse(time.DateOnly, *body.DueDate)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid due_date format."})
