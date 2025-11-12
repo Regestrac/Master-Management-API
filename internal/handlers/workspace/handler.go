@@ -10,6 +10,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ResponseType struct {
+	ID              uint       `json:"id" gorm:"primaryKey"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	Status          string     `json:"status"`
+	UserId          uint       `json:"user_id"`
+	TimeSpend       uint       `json:"time_spend"`
+	Streak          uint       `json:"streak"`
+	StartedAt       *time.Time `json:"started_at"`
+	ParentId        *uint      `json:"parent_id"`
+	LastAccessedAt  *time.Time `json:"last_accessed_at"`
+	LastStartedAt   *time.Time `json:"last_started_at"`
+	Priority        *string    `json:"priority"`
+	Type            string     `json:"type"`
+	DueDate         *time.Time `json:"due_date"`
+	Category        *string    `json:"category"`
+	Tags            *[]string  `json:"tags" gorm:"serializer:json"`
+	Achievements    *[]string  `json:"achievements" gorm:"serializer:json"`
+	WorkspaceId     *uint      `json:"workspace_id"`
+	Assignees       *[]uint    `json:"assignees" gorm:"serializer:json"`
+	CompletedAt     *time.Time `json:"completed_at"`
+	Progress        *float64   `json:"progress"`
+	TargetValue     *float64   `json:"target_value"`
+	TargetType      *string    `json:"target_type"`
+	TargetFrequency *string    `json:"target_frequency"`
+	SubTaskCount    *int64     `json:"sub_task_count"`
+}
+
 func GetWorkspaces(c *gin.Context) {
 	userData, _ := c.Get("user")
 	userId := userData.(models.User).ID
@@ -245,7 +273,45 @@ func GetWorkspaceTasks(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"tasks": tasks})
+	var response []ResponseType
+	for _, task := range tasks {
+		var subtaskCount int64
+
+		if err := db.DB.Model(&models.Task{}).Where("parent_id = ?", task.ID).Count(&subtaskCount).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subtask count!"})
+			return
+		}
+
+		response = append(response, ResponseType{
+			ID:              task.ID,
+			Title:           task.Title,
+			Description:     task.Description,
+			Status:          task.Status,
+			UserId:          task.UserId,
+			TimeSpend:       task.TimeSpend,
+			Streak:          task.Streak,
+			StartedAt:       task.StartedAt,
+			ParentId:        task.ParentId,
+			LastAccessedAt:  task.LastAccessedAt,
+			LastStartedAt:   task.LastStartedAt,
+			Priority:        task.Priority,
+			Type:            task.Type,
+			DueDate:         task.DueDate,
+			Category:        task.Category,
+			Tags:            task.Tags,
+			Achievements:    task.Achievements,
+			WorkspaceId:     task.WorkspaceId,
+			Assignees:       task.Assignees,
+			CompletedAt:     task.CompletedAt,
+			Progress:        task.Progress,
+			TargetValue:     task.TargetValue,
+			TargetType:      task.TargetType,
+			TargetFrequency: task.TargetFrequency,
+			SubTaskCount:    &subtaskCount,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tasks": response})
 }
 
 func GetWorkspaceGoals(c *gin.Context) {
@@ -260,19 +326,57 @@ func GetWorkspaceGoals(c *gin.Context) {
 		return
 	}
 
-	var tasks []models.Task
+	var goals []models.Task
 	query := db.DB.Where("workspace_id = ? AND type = 'goal'", workspaceId)
 
 	if searchKey != "" {
 		query = query.Where("LOWER(title) LIKE ?", "%"+searchKey+"%")
 	}
 
-	if err := query.Find(&tasks).Error; err != nil {
+	if err := query.Find(&goals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve goals!"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"goals": tasks})
+	var response []ResponseType
+	for _, goal := range goals {
+		var subGoalsCount int64
+
+		if err := db.DB.Model(&models.Task{}).Where("parent_id = ?", goal.ID).Count(&subGoalsCount).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subtask count!"})
+			return
+		}
+
+		response = append(response, ResponseType{
+			ID:              goal.ID,
+			Title:           goal.Title,
+			Description:     goal.Description,
+			Status:          goal.Status,
+			UserId:          goal.UserId,
+			TimeSpend:       goal.TimeSpend,
+			Streak:          goal.Streak,
+			StartedAt:       goal.StartedAt,
+			ParentId:        goal.ParentId,
+			LastAccessedAt:  goal.LastAccessedAt,
+			LastStartedAt:   goal.LastStartedAt,
+			Priority:        goal.Priority,
+			Type:            goal.Type,
+			DueDate:         goal.DueDate,
+			Category:        goal.Category,
+			Tags:            goal.Tags,
+			Achievements:    goal.Achievements,
+			WorkspaceId:     goal.WorkspaceId,
+			Assignees:       goal.Assignees,
+			CompletedAt:     goal.CompletedAt,
+			Progress:        goal.Progress,
+			TargetValue:     goal.TargetValue,
+			TargetType:      goal.TargetType,
+			TargetFrequency: goal.TargetFrequency,
+			SubTaskCount:    &subGoalsCount,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"goals": response})
 }
 
 func UpdateMember(c *gin.Context) {
