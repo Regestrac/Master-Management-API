@@ -39,4 +39,5 @@ type Task struct {
 	TargetValue     *float64   `json:"target_value"`
 	TargetType      *string    `json:"target_type"`
 	TargetFrequency *string    `json:"target_frequency"`
+	TargetProgress  *float64   `json:"target_progress"`
 }
