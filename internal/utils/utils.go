@@ -62,8 +62,22 @@ func CalculateActivityProgress(goal models.Task) float64 {
 		// Approximating a month as 30 days
 		totalTarget := *goal.TargetValue * 30 * 24 * 60 * 60
 		return (float64(goal.TimeSpend) / totalTarget) * 100
+	case "repetition", "sessions", "points", "percentage":
+		totalTarget := 0.0
+		if goal.TargetValue != nil {
+			totalTarget = *goal.TargetValue
+		}
+		targetProgress := 0.0
+		if goal.TargetProgress != nil {
+			targetProgress = *goal.TargetProgress
+		}
+		if totalTarget == 0 {
+			return 0
+		}
+		return (targetProgress / totalTarget) * 100
+	default:
+		return 0
 	}
-	return 0
 }
 
 func RecalculateProgress(id uint) (float64, error) {
