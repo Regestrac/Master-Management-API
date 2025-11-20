@@ -1,4 +1,4 @@
-module master-management-api
+module github.com/Regestrac/Master-Management-API
 
 go 1.24.3
 

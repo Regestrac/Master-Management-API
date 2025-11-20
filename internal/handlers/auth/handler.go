@@ -1,12 +1,13 @@
 package auth
 
 import (
-	"master-management-api/internal/db"
-	"master-management-api/internal/handlers/settings"
-	"master-management-api/internal/models"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/Regestrac/Master-Management-API/internal/db"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/settings"
+	"github.com/Regestrac/Master-Management-API/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

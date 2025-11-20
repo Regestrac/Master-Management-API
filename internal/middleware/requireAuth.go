@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	"master-management-api/internal/db"
-	"master-management-api/internal/models"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Regestrac/Master-Management-API/internal/db"
+	"github.com/Regestrac/Master-Management-API/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

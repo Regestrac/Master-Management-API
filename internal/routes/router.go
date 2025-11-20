@@ -2,19 +2,20 @@ package routes
 
 import (
 	"fmt"
-	"master-management-api/internal/handlers/analytics"
-	"master-management-api/internal/handlers/auth"
-	"master-management-api/internal/handlers/checklist"
-	"master-management-api/internal/handlers/history"
-	"master-management-api/internal/handlers/note"
-	"master-management-api/internal/handlers/profile"
-	"master-management-api/internal/handlers/settings"
-	"master-management-api/internal/handlers/subtasks"
-	"master-management-api/internal/handlers/task"
-	"master-management-api/internal/handlers/workspace"
-	"master-management-api/internal/middleware"
 	"net/http"
 	"os"
+
+	"github.com/Regestrac/Master-Management-API/internal/handlers/analytics"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/auth"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/checklist"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/history"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/note"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/profile"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/settings"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/subtasks"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/task"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/workspace"
+	"github.com/Regestrac/Master-Management-API/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )

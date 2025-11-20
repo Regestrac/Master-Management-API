@@ -3,10 +3,11 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"master-management-api/internal/db"
-	"master-management-api/internal/models"
 	"math"
 	"strings"
+
+	"github.com/Regestrac/Master-Management-API/internal/db"
+	"github.com/Regestrac/Master-Management-API/internal/models"
 )
 
 func Contains[T comparable](slice []T, item T) bool {

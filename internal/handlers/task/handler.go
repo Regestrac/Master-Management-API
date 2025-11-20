@@ -2,15 +2,16 @@ package task
 
 import (
 	"fmt"
-	"master-management-api/internal/db"
-	"master-management-api/internal/handlers/history"
-	"master-management-api/internal/models"
-	"master-management-api/internal/utils"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Regestrac/Master-Management-API/internal/db"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/history"
+	"github.com/Regestrac/Master-Management-API/internal/models"
+	"github.com/Regestrac/Master-Management-API/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )

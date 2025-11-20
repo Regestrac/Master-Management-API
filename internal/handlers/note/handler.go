@@ -1,9 +1,10 @@
 package note
 
 import (
-	"master-management-api/internal/db"
-	"master-management-api/internal/models"
 	"net/http"
+
+	"github.com/Regestrac/Master-Management-API/internal/db"
+	"github.com/Regestrac/Master-Management-API/internal/models"
 
 	"github.com/gin-gonic/gin"
 )

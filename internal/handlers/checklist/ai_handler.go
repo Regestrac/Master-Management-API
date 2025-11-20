@@ -2,8 +2,9 @@ package checklist
 
 import (
 	"fmt"
-	"master-management-api/pkg/ai"
 	"net/http"
+
+	"github.com/Regestrac/Master-Management-API/pkg/ai"
 
 	"github.com/gin-gonic/gin"
 )

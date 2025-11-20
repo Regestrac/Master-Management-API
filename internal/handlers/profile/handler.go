@@ -1,13 +1,14 @@
 package profile
 
 import (
-	"master-management-api/internal/db"
-	"master-management-api/internal/handlers/history"
-	"master-management-api/internal/handlers/task"
-	"master-management-api/internal/models"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/Regestrac/Master-Management-API/internal/db"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/history"
+	"github.com/Regestrac/Master-Management-API/internal/handlers/task"
+	"github.com/Regestrac/Master-Management-API/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
