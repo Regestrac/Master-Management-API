@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Regestrac/Master-Management-API/internal/db"
-	"github.com/Regestrac/Master-Management-API/internal/models"
-	"github.com/Regestrac/Master-Management-API/internal/utils"
+	"github.com/Regestrac/master-management-api/internal/db"
+	"github.com/Regestrac/master-management-api/internal/models"
+	"github.com/Regestrac/master-management-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )

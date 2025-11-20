@@ -6,8 +6,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/Regestrac/Master-Management-API/internal/db"
-	"github.com/Regestrac/Master-Management-API/internal/models"
+	"github.com/Regestrac/master-management-api/internal/db"
+	"github.com/Regestrac/master-management-api/internal/models"
 )
 
 func Contains[T comparable](slice []T, item T) bool {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Regestrac/Master-Management-API/pkg/ai"
+	"github.com/Regestrac/master-management-api/pkg/ai"
 
 	"github.com/gin-gonic/gin"
 )
