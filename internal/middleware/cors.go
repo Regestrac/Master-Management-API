@@ -7,10 +7,10 @@ import (
 )
 
 var allowedOrigins = map[string]bool{
-	"http://localhost:5173":            true,
-	"http://localhost:4173":            false,
-	"http://10.13.18.154:5173":         false,
-	"https://taskit-delta.vercel.app/": true,
+	"http://localhost:5173":           true,
+	"http://localhost:4173":           false,
+	"http://10.13.18.154:5173":        false,
+	"https://taskit-delta.vercel.app": true,
 }
 
 func CORSMiddleware() gin.HandlerFunc {
