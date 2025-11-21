@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Regestrac/master-management-api/internal/db"
-	"github.com/Regestrac/master-management-api/internal/handlers/settings"
-	"github.com/Regestrac/master-management-api/internal/models"
+	"github.com/regestrac/master-management-api/internal/db"
+	"github.com/regestrac/master-management-api/internal/handlers/settings"
+	"github.com/regestrac/master-management-api/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

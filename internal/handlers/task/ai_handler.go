@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Regestrac/master-management-api/pkg/ai"
+	"github.com/regestrac/master-management-api/pkg/ai"
 
 	"github.com/gin-gonic/gin"
 )

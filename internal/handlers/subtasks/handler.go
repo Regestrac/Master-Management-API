@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Regestrac/master-management-api/internal/db"
-	"github.com/Regestrac/master-management-api/internal/handlers/history"
-	"github.com/Regestrac/master-management-api/internal/models"
-	"github.com/Regestrac/master-management-api/internal/utils"
+	"github.com/regestrac/master-management-api/internal/db"
+	"github.com/regestrac/master-management-api/internal/handlers/history"
+	"github.com/regestrac/master-management-api/internal/models"
+	"github.com/regestrac/master-management-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )

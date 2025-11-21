@@ -3,8 +3,8 @@ package note
 import (
 	"net/http"
 
-	"github.com/Regestrac/master-management-api/internal/db"
-	"github.com/Regestrac/master-management-api/internal/models"
+	"github.com/regestrac/master-management-api/internal/db"
+	"github.com/regestrac/master-management-api/internal/models"
 
 	"github.com/gin-gonic/gin"
 )

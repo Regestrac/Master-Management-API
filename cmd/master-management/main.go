@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/Regestrac/master-management-api/cmd/config"
-	"github.com/Regestrac/master-management-api/internal/db"
-	"github.com/Regestrac/master-management-api/internal/models"
-	"github.com/Regestrac/master-management-api/internal/routes"
-	"github.com/Regestrac/master-management-api/pkg/ai"
+	"github.com/regestrac/master-management-api/cmd/config"
+	"github.com/regestrac/master-management-api/internal/db"
+	"github.com/regestrac/master-management-api/internal/models"
+	"github.com/regestrac/master-management-api/internal/routes"
+	"github.com/regestrac/master-management-api/pkg/ai"
 )
 
 func init() {
