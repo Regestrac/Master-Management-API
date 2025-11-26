@@ -25,6 +25,7 @@ func GetAllSubtasks(c *gin.Context) {
 		ChecklistCompleted *int64     `json:"checklist_completed"`
 		ChecklistTotal     *int64     `json:"checklist_total"`
 		DueDate            *time.Time `json:"due_date"`
+		CompletedAt        *time.Time `json:"completed_at"`
 	}
 
 	taskId := c.Param("id")
@@ -76,6 +77,7 @@ func GetAllSubtasks(c *gin.Context) {
 			ChecklistCompleted: &result.CompletedCount,
 			ChecklistTotal:     &result.TotalCount,
 			DueDate:            task.DueDate,
+			CompletedAt:        task.CompletedAt,
 		})
 	}
 
