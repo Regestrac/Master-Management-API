@@ -9,7 +9,7 @@ import (
 
 var (
 	client *genai.Client
-	model  string = "gemini-2.0-flash"
+	model  string = "gemini-3.1-flash-lite"
 )
 
 // Init initializes the Gemini client. Call this once in main.go.

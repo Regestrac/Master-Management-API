@@ -14,7 +14,7 @@ var (
 
 func Connect() {
 	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN:                  os.Getenv("POSTGRES_DSN"), // e.g., "host=localhost user=gorm password=gorm dbname=gorm port=9920"
+		DSN:                  os.Getenv("POSTGRES_DSN"), // e.g., "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable"
 		PreferSimpleProtocol: true,                      // disables implicit prepared statement usage
 	}), &gorm.Config{})
 
