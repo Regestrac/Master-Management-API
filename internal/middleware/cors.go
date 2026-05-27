@@ -2,17 +2,33 @@ package middleware
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-var allowedOrigins = map[string]bool{
-	"http://localhost:5173": true,
-	"http://localhost:4173": true,
-	// "http://10.13.18.154:5173": true,
+func getAllowedOrigins() map[string]bool {
+	origins := map[string]bool{
+		"http://localhost:5173": true,
+		"http://localhost:4173": true,
+	}
+
+	envOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if envOrigins != "" {
+		for _, o := range strings.Split(envOrigins, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				origins[o] = true
+			}
+		}
+	}
+
+	return origins
 }
 
 func CORSMiddleware() gin.HandlerFunc {
+	allowedOrigins := getAllowedOrigins()
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
