@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"master-management-api/internal/handlers/analytics"
 	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/handlers/checklist"
@@ -23,7 +22,7 @@ func handleNoRoute(c *gin.Context) {
 	c.JSON(http.StatusForbidden, gin.H{"error": "Invalid API route or endpoint"})
 }
 
-func SetupRouter() {
+func newRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.Use(middleware.CORSMiddleware())
@@ -102,6 +101,13 @@ func SetupRouter() {
 	router.GET("/analytics/timely-insights", analytics.GetTimelyInsights)
 	router.GET("/analytics/focus-sessions", analytics.GetFocusSessions)
 
-	router.Run(os.Getenv("PORT"))
-	fmt.Println("Listening to port" + os.Getenv("PORT"))
+	return router
+}
+
+func SetupRouter() {
+	newRouter().Run(os.Getenv("PORT"))
+}
+
+func SetupVercelRouter() http.Handler {
+	return newRouter()
 }
