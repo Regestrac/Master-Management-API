@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"log"
@@ -8,11 +8,10 @@ import (
 	"master-management-api/internal/routes"
 	"master-management-api/pkg/ai"
 	"net/http"
+	"os"
 )
 
-var handler http.Handler
-
-func init() {
+func main() {
 	config.LoadEnv()
 	db.Connect()
 
@@ -36,9 +35,13 @@ func init() {
 	}
 	log.Println("Migration complete.")
 
-	handler = routes.SetupVercelRouter()
-}
+	handler := routes.SetupVercelRouter()
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	handler.ServeHTTP(w, r)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
+	log.Println("Listening on port " + port)
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
