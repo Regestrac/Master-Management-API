@@ -1,3 +1,13 @@
 {
-  "framework": "go"
+  "functions": {
+    "cmd/master-management/main.go": {
+      "runtime": "vercel-go@3"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "cmd/master-management/main.go"
+    }
+  ]
 }
