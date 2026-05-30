@@ -7,18 +7,18 @@ import (
 	"master-management-api/internal/models"
 	"master-management-api/internal/routes"
 	"master-management-api/pkg/ai"
-	"net/http"
-	"os"
 )
 
-func main() {
+func init() {
 	config.LoadEnv()
 	db.Connect()
 
 	if err := ai.Init(); err != nil {
 		log.Fatalf("Failed to initialize Gemini: %v", err)
 	}
+}
 
+func main() {
 	log.Println("Starting Migration...")
 	if err := db.DB.AutoMigrate(
 		&models.User{},
@@ -35,13 +35,6 @@ func main() {
 	}
 	log.Println("Migration complete.")
 
-	handler := routes.SetupVercelRouter()
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
-	}
-
-	log.Println("Listening on port " + port)
-	log.Fatal(http.ListenAndServe(":"+port, handler))
+	routes.SetupVercelRouter()
+	routes.SetupRouter()
 }

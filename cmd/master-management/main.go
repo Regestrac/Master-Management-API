@@ -35,5 +35,6 @@ func main() {
 	}
 	log.Println("Migration complete.")
 
+	routes.SetupVercelRouter()
 	routes.SetupRouter()
 }
