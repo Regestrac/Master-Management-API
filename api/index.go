@@ -1,13 +1,17 @@
-package main
+package api
 
 import (
 	"log"
+	"net/http"
+
 	"master-management-api/cmd/config"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"master-management-api/internal/routes"
 	"master-management-api/pkg/ai"
 )
+
+var handler http.Handler
 
 func init() {
 	config.LoadEnv()
@@ -16,9 +20,7 @@ func init() {
 	if err := ai.Init(); err != nil {
 		log.Printf("Failed to initialize Gemini: %v", err)
 	}
-}
 
-func main() {
 	if db.DB != nil {
 		log.Println("Starting Migration...")
 		if err := db.DB.AutoMigrate(
@@ -40,5 +42,9 @@ func main() {
 		log.Println("Skipping migration because DB connection failed.")
 	}
 
-	routes.SetupRouter()
+	handler = routes.SetupVercelRouter()
+}
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+	handler.ServeHTTP(w, r)
 }

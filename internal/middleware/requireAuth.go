@@ -59,7 +59,9 @@ func RequireAuth(c *gin.Context) {
 	// Find the user with token sub
 	var user models.User
 	if sub, ok := claims["sub"].(float64); ok {
-		db.DB.First(&user, uint(sub))
+		if db.DB != nil {
+			db.DB.First(&user, uint(sub))
+		}
 	}
 
 	if user.ID == 0 {
