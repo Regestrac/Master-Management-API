@@ -31,6 +31,13 @@ func newRouter() *gin.Engine {
 	router.POST("/signup", auth.SignUp)
 	router.POST("/login", auth.Login)
 
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "up",
+			"message": "Service is healthy",
+		})
+	})
+
 	router.Use(middleware.RequireAuth)
 
 	router.GET("/validate", auth.Validate)

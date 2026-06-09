@@ -19,9 +19,10 @@ func Connect() {
 	}), &gorm.Config{})
 
 	if err != nil {
-		panic("Failed to connect to database: " + err.Error())
+		log.Printf("Failed to connect to database: %v", err)
+	} else {
+		log.Println("Connected to DB.")
 	}
-	log.Println("Connected to DB.")
 
 	DB = db
 }
