@@ -105,7 +105,15 @@ func newRouter() *gin.Engine {
 }
 
 func SetupRouter() {
-	newRouter().Run(os.Getenv("PORT"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	// Gin requires the port string to start with a colon
+	if port[0] != ':' {
+		port = ":" + port
+	}
+	newRouter().Run(port)
 }
 
 func SetupVercelRouter() http.Handler {

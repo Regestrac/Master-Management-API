@@ -1,17 +1,13 @@
-package api
+package main
 
 import (
 	"log"
-	"net/http"
-
 	"master-management-api/cmd/config"
 	"master-management-api/internal/db"
 	"master-management-api/internal/models"
 	"master-management-api/internal/routes"
 	"master-management-api/pkg/ai"
 )
-
-var app http.Handler
 
 func init() {
 	config.LoadEnv()
@@ -20,7 +16,9 @@ func init() {
 	if err := ai.Init(); err != nil {
 		log.Fatalf("Failed to initialize Gemini: %v", err)
 	}
+}
 
+func main() {
 	log.Println("Starting Migration...")
 	if err := db.DB.AutoMigrate(
 		&models.User{},
@@ -33,13 +31,10 @@ func init() {
 		&models.UserSettings{},
 		&models.TaskSession{},
 	); err != nil {
-		log.Printf("Failed to migrate: %v", err)
+		log.Fatal("Failed to migrate:", err)
 	}
 	log.Println("Migration complete.")
 
-	app = routes.SetupVercelRouter()
-}
-
-func Handler(w http.ResponseWriter, r *http.Request) {
-	app.ServeHTTP(w, r)
+	routes.SetupVercelRouter()
+	routes.SetupRouter()
 }
