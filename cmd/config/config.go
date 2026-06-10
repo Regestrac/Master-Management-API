@@ -2,14 +2,18 @@ package config
 
 import (
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 )
 
 func LoadEnv() {
-	err := godotenv.Load("../../.env")
+	// Only load .env when running locally
+	if os.Getenv("RENDER") == "" {
+		err := godotenv.Load("../../.env")
 
-	if err != nil {
-		log.Println("Error loading .env file: " + err.Error())
+		if err != nil {
+			log.Println("Error loading .env file: " + err.Error())
+		}
 	}
 }

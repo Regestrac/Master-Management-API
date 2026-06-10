@@ -109,6 +109,14 @@ func SetupRouter() {
 	router.GET("/analytics/timely-insights", analytics.GetTimelyInsights)
 	router.GET("/analytics/focus-sessions", analytics.GetFocusSessions)
 
-	router.Run(os.Getenv("PORT"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+	if port[0] != ':' {
+		port = ":" + port
+	}
+
+	router.Run(port)
 	fmt.Println("Listening to port" + os.Getenv("PORT"))
 }
