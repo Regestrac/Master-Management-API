@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"master-management-api/internal/handlers/analytics"
 	"master-management-api/internal/handlers/auth"
 	"master-management-api/internal/handlers/checklist"
@@ -22,21 +23,21 @@ func handleNoRoute(c *gin.Context) {
 	c.JSON(http.StatusForbidden, gin.H{"error": "Invalid API route or endpoint"})
 }
 
-func newRouter() *gin.Engine {
+func SetupRouter() {
 	router := gin.Default()
 
 	router.Use(middleware.CORSMiddleware())
 	router.NoRoute(handleNoRoute)
 
-	router.POST("/signup", auth.SignUp)
-	router.POST("/login", auth.Login)
-
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "up",
+			"status":  "up",
 			"message": "Service is healthy",
 		})
 	})
+
+	router.POST("/signup", auth.SignUp)
+	router.POST("/login", auth.Login)
 
 	router.Use(middleware.RequireAuth)
 
@@ -108,21 +109,6 @@ func newRouter() *gin.Engine {
 	router.GET("/analytics/timely-insights", analytics.GetTimelyInsights)
 	router.GET("/analytics/focus-sessions", analytics.GetFocusSessions)
 
-	return router
-}
-
-func SetupRouter() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	// Gin requires the port string to start with a colon
-	if port[0] != ':' {
-		port = ":" + port
-	}
-	newRouter().Run(port)
-}
-
-func SetupVercelRouter() http.Handler {
-	return newRouter()
+	router.Run(os.Getenv("PORT"))
+	fmt.Println("Listening to port" + os.Getenv("PORT"))
 }
