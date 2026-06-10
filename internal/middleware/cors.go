@@ -16,10 +16,10 @@ func getAllowedOrigins() map[string]bool {
 
 	envOrigins := os.Getenv("ALLOWED_ORIGINS")
 	if envOrigins != "" {
-		for _, o := range strings.Split(envOrigins, ",") {
-			o = strings.TrimSpace(o)
-			if o != "" {
-				origins[o] = true
+		for _, origin := range strings.Split(envOrigins, ",") {
+			origin = strings.TrimSpace(origin)
+			if origin != "" {
+				origins[origin] = true
 			}
 		}
 	}
